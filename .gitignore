@@ -1,0 +1,96 @@
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Django
+*.log
+*.pot
+db.sqlite3
+db.sqlite3-journal
+test_db.sqlite3
+/staticfiles/
+/media/
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Tests
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Logs
+logs/
+*.log
+
+# PDF générés
+quitus_pdf/
+test_quitus*.pdf
+*.pdf
+
+# QR codes générés
+qr_codes/
+*.png
+
+# Clés de sécurité
+private.pem
+public.pem
+*.pem
+*.key
+
+# Base de données
+*.sql
+quitus_pal_dump.sql
+
+# Images temporaires
+images/
+
+# Documentation temporaire
+COMPLETION_REPORT.md
+CORRECTIONS_PHASE7.md
+phase7_diagnostic.sh
+PHASE7_STATUS.md
+PHASE7_SUMMARY.md
+PHASE_6_INDEX.md
+QUICK_REFERENCE.md
+SECURITY_REPORT.md
+TEST_EXECUTION_GUIDE.md
+
+# Scripts de test standalone
+scripts/test_pdf.py
+scripts/test_pdf_preview.py
+
+# Fichiers de configuration locale
+PDF.txt
+run_phase7.bat
+run_tests.py
+debug_email.py
+generate_sample_quitus.py
+verify_setup.py
+verifier_quitus.py
+
+# Assets temporaires
+modele_quitus.pdf
+TUV.png

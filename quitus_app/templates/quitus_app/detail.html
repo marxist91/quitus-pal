@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détail Quitus {{ quitus.numero_quitus }} - Port Autonome de Lomé</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --pal-blue: #002060;
+            --pal-yellow: #FFD700;
+            --pal-light-blue: #004494;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: var(--pal-blue);
+            color: white;
+            padding: 30px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .header-card h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-card .tagline {
+            color: var(--pal-yellow);
+            margin-top: 10px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            padding: 40px;
+        }
+
+        .status-badge {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+
+        .status-actif {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .status-expire {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-left: 5px solid var(--pal-blue);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .info-section h5 {
+            color: var(--pal-blue);
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-section h5 i {
+            margin-right: 10px;
+            color: var(--pal-yellow);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .info-value {
+            color: #212529;
+            text-align: right;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            font-weight: bold;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            font-weight: bold;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+            color: white;
+        }
+
+        .qr-preview {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border: 2px solid var(--pal-blue);
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .qr-preview img {
+            max-width: 200px;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            background: white;
+        }
+
+        .history-table {
+            margin-top: 30px;
+        }
+
+        .history-table table {
+            width: 100%;
+        }
+
+        .history-table th {
+            background: var(--pal-blue);
+            color: white;
+            padding: 12px;
+        }
+
+        .history-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .alert-info {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <div class="header-card">
+        <h1><i class="fas fa-anchor"></i> Port Autonome de Lomé</h1>
+        <p class="tagline">République Togolaise - Travail, Liberté, Patrie</p>
+    </div>
+
+    <div class="content-card">
+        <!-- En-tête du quitus -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-file-certificate"></i> Quitus {{ quitus.numero_quitus }}</h2>
+            <span class="status-badge {% if valide %}status-actif{% else %}status-expire{% endif %}">
+                <i class="fas fa-{% if valide %}check-circle{% else %}times-circle{% endif %}"></i>
+                {{ quitus.get_statut_display }}
+            </span>
+        </div>
+
+        <!-- Alertes -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if valide %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Validité :</strong> Ce quitus est valide jusqu'au {{ quitus.date_validite|date:"d/m/Y" }}
+                ({{ jours_restants }} jour{{ jours_restants|pluralize }} restant{{ jours_restants|pluralize }})
+            </div>
+        {% endif %}
+
+        <!-- Boutons d'action -->
+        <div class="action-buttons">
+            {% if quitus.pdf_file %}
+                <a href="{% url 'telecharger_quitus' quitus.numero_quitus %}" class="btn btn-download" id="downloadBtn">
+                    <i class="fas fa-download"></i> Télécharger le PDF
+                </a>
+            {% endif %}
+            <a href="{% url 'creer_quitus' %}" class="btn btn-back">
+                <i class="fas fa-plus-circle"></i> Nouveau Quitus
+            </a>
+        </div>
+
+        <!-- Informations du client -->
+        <div class="info-section">
+            <h5><i class="fas fa-user-tie"></i> Informations du Client</h5>
+            <div class="info-row">
+                <span class="info-label">Nom et Prénoms :</span>
+                <span class="info-value">{{ quitus.nom_prenoms }}</span>
+            </div>
+            {% if quitus.raison_sociale %}
+            <div class="info-row">
+                <span class="info-label">Raison Sociale :</span>
+                <span class="info-value">{{ quitus.raison_sociale }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">N° CNI :</span>
+                <span class="info-value">{{ quitus.cni }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Nationalité :</span>
+                <span class="info-value">{{ quitus.nationalite }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Activité Principale :</span>
+                <span class="info-value">{{ quitus.activite }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">N° Compte PAL :</span>
+                <span class="info-value">{{ quitus.compte_pal }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">NIF :</span>
+                <span class="info-value">{{ quitus.nif }}</span>
+            </div>
+        </div>
+
+        <!-- Coordonnées -->
+        <div class="info-section">
+            <h5><i class="fas fa-map-marker-alt"></i> Coordonnées</h5>
+            <div class="info-row">
+                <span class="info-label">Téléphone :</span>
+                <span class="info-value">{{ quitus.telephone }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email :</span>
+                <span class="info-value">{{ quitus.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Situation Géographique :</span>
+                <span class="info-value">{{ quitus.situation_geo }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Adresse Postale :</span>
+                <span class="info-value">{{ quitus.adresse_postale }}</span>
+            </div>
+        </div>
+
+        <!-- Détails du quitus -->
+        <div class="info-section">
+            <h5><i class="fas fa-info-circle"></i> Détails du Quitus</h5>
+            <div class="info-row">
+                <span class="info-label">Date d'Émission :</span>
+                <span class="info-value">{{ quitus.date_emission|date:"d/m/Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date de Validité :</span>
+                <span class="info-value">{{ quitus.date_validite|date:"d/m/Y" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Agent Responsable :</span>
+                <span class="info-value">{{ quitus.agent.nom_complet }} ({{ quitus.agent.fonction }})</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Code de Vérification :</span>
+                <span class="info-value"><code>{{ quitus.code_verification }}</code></span>
+            </div>
+        </div>
+
+        <!-- QR Code Preview -->
+        {% if quitus.qr_code_image %}
+        <div class="qr-preview">
+            <h5><i class="fas fa-qrcode"></i> Code QR de Sécurité</h5>
+            <img src="{{ quitus.qr_code_image.url }}" alt="QR Code" class="img-fluid">
+            <p class="mt-2"><small>Scannez pour vérifier l'authenticité</small></p>
+        </div>
+        {% endif %}
+
+        <!-- Historique -->
+        {% if historique %}
+        <div class="history-table">
+            <h5><i class="fas fa-history"></i> Historique des Actions</h5>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Détails</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historique %}
+                    <tr>
+                        <td>{{ h.date_action|date:"d/m/Y H:i" }}</td>
+                        <td><span class="badge bg-primary">{{ h.action }}</span></td>
+                        <td>{{ h.details|default:"—" }}</td>
+                        <td><small>{{ h.ip_address }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Redirection automatique vers la page de création après téléchargement
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function(e) {
+            // Laisser le téléchargement se faire normalement
+            // Puis rediriger après un court délai
+            setTimeout(function() {
+                window.location.href = "{% url 'creer_quitus' %}";
+            }, 1500);  // 1.5 secondes pour laisser le temps au téléchargement de démarrer
+        });
+    }
+</script>
+</body>
+</html>

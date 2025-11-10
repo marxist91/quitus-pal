@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Port Autonome de Lomé - Gestion des Quitus{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --pal-blue: #002060;
+            --pal-yellow: #FFD700;
+            --pal-light-blue: #004494;
+        }
+
+        body { 
+            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--pal-blue) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-link {
+            margin: 0 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 215, 0, 0.2);
+            color: var(--pal-yellow) !important;
+        }
+
+        .nav-link.active {
+            background: var(--pal-light-blue);
+            color: white !important;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* En-tête du Port */
+        .port-header {
+            background: var(--pal-blue);
+            color: white;
+            padding: 25px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .port-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: var(--pal-yellow);
+            opacity: 0.1;
+            border-radius: 50%;
+        }
+
+        .port-logo {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .port-logo h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .port-logo .tagline {
+            color: var(--pal-yellow);
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .document-title {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--pal-yellow);
+        }
+
+        .document-title h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* Carte principale */
+        .card {
+            border: none;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .card-body {
+            padding: 40px;
+        }
+
+        /* Messages d'alerte */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .alert i {
+            margin-right: 10px;
+        }
+
+        /* Sections du formulaire */
+        .form-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            border-left: 5px solid var(--pal-blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .form-section h5 {
+            color: var(--pal-blue);
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--pal-yellow);
+            display: flex;
+            align-items: center;
+        }
+
+        .form-section h5 i {
+            margin-right: 10px;
+            color: var(--pal-yellow);
+        }
+
+        /* Groupes de formulaire */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .required-star {
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 3px;
+        }
+
+        /* Inputs stylisés */
+        .form-control, .form-select {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--pal-blue);
+            box-shadow: 0 0 0 0.2rem rgba(0, 32, 96, 0.15);
+        }
+
+        /* Icônes dans les inputs */
+        .input-group-text {
+            background: var(--pal-blue);
+            color: white;
+            border: none;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 10;
+        }
+
+        .input-with-icon .form-control {
+            padding-left: 45px;
+        }
+
+        /* Texte d'aide */
+        .form-text {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Messages d'erreur */
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        /* En-tête des sections */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-badge {
+            background: var(--pal-blue);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        /* Boutons */
+        .btn-generate {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+        }
+
+        .btn-generate:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-generate i {
+            margin-right: 10px;
+        }
+
+        /* Zone de pied de page */
+        .form-footer {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .form-footer p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* Info boxes */
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box i {
+            color: #0066cc;
+            margin-right: 10px;
+        }
+
+        /* Compteur de caractères */
+        .char-counter {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Animation de chargement */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3rem;
+            color: var(--pal-blue);
+        }
+
+        /* Tableau */
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead {
+            background: var(--pal-blue);
+            color: white;
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-valid {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-expired {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Pagination */
+        .pagination {
+            margin-top: 20px;
+        }
+
+        .page-link {
+            color: var(--pal-blue);
+            border-color: #dee2e6;
+        }
+
+        .page-link:hover {
+            color: var(--pal-light-blue);
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--pal-blue);
+            border-color: var(--pal-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 20px;
+            }
+
+            .form-section {
+                padding: 15px;
+            }
+
+            .port-logo h1 {
+                font-size: 1.5rem;
+            }
+
+            .btn-generate {
+                font-size: 1rem;
+                padding: 15px 30px;
+            }
+
+            .main-container {
+                margin: 20px auto;
+            }
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'index' %}">
+            <i class="fas fa-anchor"></i> Port Autonome de Lomé
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'creer_quitus' %}active{% endif %}" href="{% url 'creer_quitus' %}">
+                            <i class="fas fa-file-medical-alt"></i> Créer un Quitus
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'liste_quitus' %}active{% endif %}" href="{% url 'liste_quitus' %}">
+                            <i class="fas fa-list"></i> Liste des Quitus
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'recherche_quitus' %}active{% endif %}" href="{% url 'recherche_quitus' %}">
+                            <i class="fas fa-search"></i> Recherche
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i> {{ user.first_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cogs"></i> Administration</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Connexion
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="main-container">
+    <!-- En-tête du Port -->
+    <div class="port-header">
+        <div class="port-logo">
+            <h1><i class="fas fa-anchor"></i> Port Autonome de Lomé</h1>
+            <p class="tagline">République Togolaise - Travail, Liberté, Patrie</p>
+        </div>
+        <div class="document-title">
+            <h2><i class="fas fa-file-certificate"></i> {% block page_title %}QUITUS PORTUAIRE{% endblock %}</h2>
+        </div>
+    </div>
+
+    <!-- Carte principale -->
+    <div class="card">
+        <div class="card-body">
+            <!-- Messages de succès/erreur -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i> <strong>Succès !</strong>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i> <strong>Erreur !</strong>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Contenu de la page -->
+            {% block content %}{% endblock %}
+
+            <!-- Pied de formulaire -->
+            <div class="form-footer">
+                <p>
+                    <i class="fas fa-shield-alt"></i> 
+                    Document officiel généré avec code QR de sécurité
+                </p>
+                <p class="mt-2">
+                    <small>
+                        <i class="fas fa-info-circle"></i>
+                        Port Autonome de Lomé | Tél: +228 22 27 47 42 | Email: togoport@togoport.tg
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Script de formatage du téléphone -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajout automatique de la classe form-control
+        document.querySelectorAll('input, select, textarea').forEach(function(element) {
+            if (!element.classList.contains('form-control') && !element.classList.contains('form-select')) {
+                if (element.tagName === 'SELECT') {
+                    element.classList.add('form-select');
+                } else {
+                    element.classList.add('form-control');
+                }
+            }
+        });
+
+        // Formatage du téléphone
+        const phoneInput = document.querySelector('input[name="telephone"]');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                const raw = e.target.value || '';
+                const hasPlus = raw.trim().startsWith('+');
+                const digits = raw.replace(/\D/g, '');
+
+                let display = digits;
+
+                if (digits.startsWith('228') && digits.length > 3) {
+                    const prefix = digits.slice(0, 3);
+                    const rest = digits.slice(3);
+                    const groupedRest = rest.replace(/(.{2})/g, '$1 ').trim();
+                    display = prefix + (groupedRest ? ' ' + groupedRest : '');
+                } else if (digits.length === 8) {
+                    const grouped = digits.replace(/(.{2})/g, '$1 ').trim();
+                    display = '228' + (grouped ? ' ' + grouped : '');
+                } else {
+                    display = digits.replace(/(.{2})/g, '$1 ').trim();
+                }
+
+                if (hasPlus) display = '+' + display;
+                e.target.value = display;
+            });
+        }
+
+        // Validation email en temps réel
+        const emailInput = document.querySelector('input[name="email"]');
+        if (emailInput) {
+            emailInput.addEventListener('blur', function(e) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(e.target.value) && e.target.value !== '') {
+                    e.target.classList.add('is-invalid');
+                } else {
+                    e.target.classList.remove('is-invalid');
+                }
+            });
+        }
+    });
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

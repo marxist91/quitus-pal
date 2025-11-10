@@ -1,0 +1,308 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}Accueil - Gestion des Quitus - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}Bienvenue dans la Gestion des Quitus{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
+            color: white;
+            padding: 60px 20px;
+            border-radius: 12px;
+            margin-bottom: 50px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .hero-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .hero-section p {
+            font-size: 1.2rem;
+            margin: 0;
+            opacity: 0.95;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-top: 4px solid var(--pal-blue);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        .feature-card i {
+            font-size: 3rem;
+            color: var(--pal-blue);
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            color: var(--pal-blue);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .feature-card .btn {
+            width: 100%;
+        }
+
+        .stats-section {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 50px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid var(--pal-blue);
+        }
+
+        .stat-box .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--pal-blue);
+        }
+
+        .stat-box .label {
+            color: #666;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .info-banner {
+            background: linear-gradient(135deg, #e7f3ff 0%, #f0f8ff 100%);
+            border-left: 4px solid var(--pal-blue);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .info-banner i {
+            color: var(--pal-blue);
+            margin-right: 10px;
+        }
+
+        .quick-access {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .quick-access h3 {
+            color: var(--pal-blue);
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-link {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .quick-link:hover {
+            background: var(--pal-blue);
+            color: white;
+            border-left-color: white;
+        }
+
+        .quick-link i {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            width: 30px;
+        }
+
+        .quick-link span {
+            flex: 1;
+        }
+
+        .quick-link .arrow {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-link:hover .arrow {
+            transform: translateX(5px);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <h1><i class="fas fa-certificate"></i> Gestion des Quitus</h1>
+        <p>Plateforme centralisée pour la gestion et la vérification des certificats de quitus</p>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="info-banner">
+        <i class="fas fa-info-circle"></i>
+        <strong>Bienvenue !</strong> Cette plateforme vous permet de créer, rechercher, et gérer les quitus du Port Autonome de Lomé.
+    </div>
+
+    <!-- Features Grid -->
+    <div class="features-grid">
+        <!-- Créer un Quitus -->
+        <div class="feature-card">
+            <i class="fas fa-file-medical-alt"></i>
+            <h3>Créer un Quitus</h3>
+            <p>Créez un nouveau certificat de quitus pour un bénéficiaire avec les informations complètes.</p>
+            <a href="{% url 'creer_quitus' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Créer
+            </a>
+        </div>
+
+        <!-- Liste des Quitus -->
+        <div class="feature-card">
+            <i class="fas fa-list-ul"></i>
+            <h3>Liste des Quitus</h3>
+            <p>Consultez la liste complète de tous les quitus avec pagination et statistiques.</p>
+            <a href="{% url 'liste_quitus' %}" class="btn btn-info">
+                <i class="fas fa-eye"></i> Consulter
+            </a>
+        </div>
+
+        <!-- Recherche Avancée -->
+        <div class="feature-card">
+            <i class="fas fa-search"></i>
+            <h3>Recherche Avancée</h3>
+            <p>Recherchez un quitus avec des filtres avancés (statut, dates, critères textuels).</p>
+            <a href="{% url 'recherche_quitus' %}" class="btn btn-success">
+                <i class="fas fa-search-plus"></i> Rechercher
+            </a>
+        </div>
+
+        <!-- Vérifier un Quitus -->
+        <div class="feature-card">
+            <i class="fas fa-check-circle"></i>
+            <h3>Vérifier un Quitus</h3>
+            <p>Vérifiez l'authenticité et la validité d'un quitus via son code de vérification.</p>
+            <a href="{% url 'verification_page' %}" class="btn btn-warning">
+                <i class="fas fa-badge-check"></i> Vérifier
+            </a>
+        </div>
+
+        <!-- Export CSV -->
+        <div class="feature-card">
+            <i class="fas fa-file-csv"></i>
+            <h3>Exporter en CSV</h3>
+            <p>Exportez les résultats de recherche en fichier CSV pour analyse ou partage.</p>
+            <a href="{% url 'recherche_quitus' %}" class="btn btn-secondary">
+                <i class="fas fa-download"></i> Exporter
+            </a>
+        </div>
+
+        <!-- Administration -->
+        <div class="feature-card">
+            <i class="fas fa-cogs"></i>
+            <h3>Administration</h3>
+            <p>Accédez à l'interface d'administration pour gérer les utilisateurs et les données.</p>
+            <a href="/admin/" class="btn btn-dark">
+                <i class="fas fa-lock"></i> Admin
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    {% if stats %}
+        <div class="stats-section">
+            <h3 style="text-align: center; color: var(--pal-blue); margin-bottom: 30px;">
+                <i class="fas fa-chart-bar"></i> Statistiques
+            </h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="number">{{ stats.total }}</div>
+                    <div class="label">Quitus Total</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" style="color: #28a745;">{{ stats.actif }}</div>
+                    <div class="label">Quitus Valides</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" style="color: #ffc107;">{{ stats.expire }}</div>
+                    <div class="label">Quitus Expirés</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number" style="color: #dc3545;">{{ stats.annule }}</div>
+                    <div class="label">Quitus Annulés</div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Quick Access Section -->
+    <div class="quick-access">
+        <h3><i class="fas fa-bolt"></i> Accès Rapide</h3>
+        <div class="quick-links">
+            <a href="{% url 'creer_quitus' %}" class="quick-link">
+                <i class="fas fa-plus-circle"></i>
+                <span>Créer un nouveau quitus</span>
+                <span class="arrow"><i class="fas fa-chevron-right"></i></span>
+            </a>
+            <a href="{% url 'liste_quitus' %}" class="quick-link">
+                <i class="fas fa-list"></i>
+                <span>Voir tous les quitus</span>
+                <span class="arrow"><i class="fas fa-chevron-right"></i></span>
+            </a>
+            <a href="{% url 'verification_page' %}" class="quick-link">
+                <i class="fas fa-qrcode"></i>
+                <span>Vérifier un quitus (QR Code)</span>
+                <span class="arrow"><i class="fas fa-chevron-right"></i></span>
+            </a>
+            <a href="/admin/" class="quick-link">
+                <i class="fas fa-cogs"></i>
+                <span>Panneau d'administration</span>
+                <span class="arrow"><i class="fas fa-chevron-right"></i></span>
+            </a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,49 @@
+================================================================================
+                    AVERTISSEMENT D'EXPIRATION DE QUITUS
+================================================================================
+
+Bonjour {{ recipient_name }},
+
+Nous vous informons que votre Quitus {{ quitus.numero_quitus }} expirera dans 
+{{ days_remaining }} jours.
+
+================================================================================
+DÉTAILS DE VOTRE QUITUS
+================================================================================
+
+Numéro Quitus:        {{ quitus.numero_quitus }}
+Bénéficiaire:         {{ quitus.nom_prenoms }}
+CNI:                  {{ quitus.cni }}
+Activité:             {{ quitus.activite }}
+Date Émission:        {{ quitus.date_emission|date:"d/m/Y" }}
+Date Validité:        {{ quitus.date_validite|date:"d/m/Y" }}
+
+================================================================================
+ACTION REQUISE
+================================================================================
+
+📅 DATE D'EXPIRATION: {{ expiry_date }}
+
+Nous vous recommandons de renouveler votre Quitus dès que possible.
+
+Actions à prendre:
+  1. Connectez-vous à votre compte Gestion Quitus
+  2. Consultez votre Quitus pour vérifier les détails
+  3. Initiez le renouvellement si nécessaire
+
+================================================================================
+SUPPORT
+================================================================================
+
+Pour toute question ou besoin d'assistance, veuillez contacter notre équipe 
+support via la plateforme Gestion Quitus.
+
+================================================================================
+
+Cet email a été généré automatiquement le {{ notification_date }}
+Gestion Quitus - Plateforme PAL
+© 2025 Togoport. Tous droits réservés.
+
+Ne pas répondre à cet email. Connectez-vous à votre compte pour communiquer.
+
+================================================================================

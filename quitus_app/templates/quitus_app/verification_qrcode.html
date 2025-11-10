@@ -1,0 +1,635 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}Vérification de Quitus - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}Vérification d'Authenticité de Quitus{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .verification-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .verification-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .verification-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--pal-blue);
+        }
+
+        .verification-header h2 {
+            color: var(--pal-blue);
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .verification-header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .verification-form {
+            margin-bottom: 30px;
+        }
+
+        .form-group-verification {
+            margin-bottom: 20px;
+        }
+
+        .form-group-verification label {
+            display: block;
+            font-weight: 600;
+            color: var(--pal-blue);
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .form-group-verification input,
+        .form-group-verification textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group-verification input:focus,
+        .form-group-verification textarea:focus {
+            border-color: var(--pal-blue);
+            box-shadow: 0 0 0 0.2rem rgba(0, 32, 96, 0.15);
+            outline: none;
+        }
+
+        .input-help {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .verification-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .method-tab {
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .method-tab:hover {
+            border-color: var(--pal-blue);
+            background: #f0f8ff;
+        }
+
+        .method-tab.active {
+            border-color: var(--pal-blue);
+            background: var(--pal-blue);
+            color: white;
+        }
+
+        .method-tab i {
+            display: block;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .method-tab span {
+            display: block;
+            font-weight: 600;
+        }
+
+        .btn-verify {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--pal-blue) 0%, #004494 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-verify:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 32, 96, 0.3);
+        }
+
+        .btn-verify:active {
+            transform: translateY(0);
+        }
+
+        .result-box {
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .result-error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .result-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .result-content {
+            margin: 0;
+        }
+
+        .result-content strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .result-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .result-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .result-detail-label {
+            font-weight: 600;
+        }
+
+        .qr-scanner-wrapper {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #dee2e6;
+        }
+
+        .qr-scanner-placeholder {
+            color: #6c757d;
+        }
+
+        .qr-scanner-placeholder i {
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .info-box-verification {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box-verification i {
+            color: #0066cc;
+            margin-right: 10px;
+        }
+
+        .method-content {
+            display: none;
+        }
+
+        .method-content.active {
+            display: block;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: var(--pal-blue);
+        }
+
+        .file-input-label:hover {
+            border-color: var(--pal-blue);
+            background: #f0f8ff;
+        }
+
+        .file-input-label i {
+            display: block;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading-spinner.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--pal-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Info Banner -->
+    <div class="info-box-verification">
+        <i class="fas fa-shield-alt"></i>
+        <strong>Vérification sécurisée :</strong> Entrez le code de vérification ou scannez le code QR du quitus pour vérifier son authenticité.
+    </div>
+
+    <div class="verification-container">
+        <div class="verification-card">
+            <!-- En-tête -->
+            <div class="verification-header">
+                <h2><i class="fas fa-check-circle"></i> Vérifier un Quitus</h2>
+                <p>Confirmez l'authenticité et la validité d'un quitus</p>
+            </div>
+
+            <!-- Onglets de méthode -->
+            <div class="verification-methods">
+                <div class="method-tab active" onclick="switchMethod('code')">
+                    <i class="fas fa-barcode"></i>
+                    <span>Par Code</span>
+                </div>
+                <div class="method-tab" onclick="switchMethod('qr')">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Scanner QR</span>
+                </div>
+            </div>
+
+            <!-- Formulaire de vérification par code -->
+            <div class="verification-form method-content active" id="method-code">
+                <div class="form-group-verification">
+                    <label for="verification-code">
+                        <i class="fas fa-key"></i> Code de Vérification
+                    </label>
+                    <input type="text" id="verification-code" name="code" placeholder="Entrez le code de vérification du quitus" class="verification-input">
+                    <span class="input-help">Format: Code alphanumériques fournis avec le quitus</span>
+                </div>
+                <button type="button" class="btn-verify" onclick="verifyByCode()">
+                    <i class="fas fa-search"></i> Vérifier le Code
+                </button>
+            </div>
+
+            <!-- Formulaire de vérification par QR Code -->
+            <div class="verification-form method-content" id="method-qr">
+                <div class="qr-scanner-wrapper">
+                    <div class="qr-scanner-placeholder">
+                        <i class="fas fa-camera"></i>
+                        <p>Scanner de QR Code</p>
+                        <small>Une caméra sera activée si votre appareil la supporte</small>
+                    </div>
+                    <video id="qr-video" style="display:none; width: 100%; max-width: 400px; border-radius: 8px;"></video>
+                </div>
+                <div class="form-group-verification">
+                    <label for="qr-file">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="qr-file" accept="image/*">
+                            <label class="file-input-label" for="qr-file">
+                                <i class="fas fa-upload"></i>
+                                Charger une image de QR Code
+                            </label>
+                        </div>
+                    </label>
+                    <span class="input-help">Ou chargez une capture d'écran contenant le QR Code</span>
+                </div>
+                <button type="button" class="btn-verify" onclick="verifyByQR()">
+                    <i class="fas fa-camera"></i> Scanner QR
+                </button>
+            </div>
+
+            <!-- Zone de chargement -->
+            <div class="loading-spinner" id="loading">
+                <div class="spinner"></div>
+                <p>Vérification en cours...</p>
+            </div>
+
+            <!-- Résultat de vérification -->
+            <div class="result-box" id="result-box">
+                <div class="result-content" id="result-content"></div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="verification-card" style="background: #f8f9fa;">
+            <h4 style="color: var(--pal-blue); margin-bottom: 15px;">
+                <i class="fas fa-question-circle"></i> Comment vérifier un quitus ?
+            </h4>
+            <ol style="color: #555; line-height: 1.8;">
+                <li><strong>Par Code :</strong> Entrez le code de vérification unique fourni avec le quitus</li>
+                <li><strong>Par QR Code :</strong> Scannez le QR Code présent sur le document PDF</li>
+                <li>Le système vérifiera l'authenticité et affichera l'état du quitus</li>
+                <li>Vous verrez les détails complets : bénéficiaire, dates, statut, etc.</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        function switchMethod(method) {
+            // Masquer tous les contenus
+            document.querySelectorAll('.method-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.method-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Afficher le contenu sélectionné
+            document.getElementById('method-' + method).classList.add('active');
+            event.target.closest('.method-tab').classList.add('active');
+
+            // Si QR Code, initialiser la caméra
+            if (method === 'qr') {
+                initQRScanner();
+            }
+        }
+
+        function verifyByCode() {
+            const code = document.getElementById('verification-code').value.trim();
+
+            if (!code) {
+                showResult('error', 'Erreur', 'Veuillez entrer un code de vérification');
+                return;
+            }
+
+            verifyCode(code);
+        }
+
+        function verifyCode(code) {
+            showLoading(true);
+
+            fetch(`/verifier/${code}/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    // Vérifier le content-type
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Réponse non-JSON du serveur');
+                    }
+                    
+                    if (!response.ok && response.status !== 404) {
+                        throw new Error(`Erreur HTTP ${response.status}`);
+                    }
+                    
+                    return response.json();
+                })
+                .then(data => {
+                    showLoading(false);
+                    if (data.valid) {
+                        displayVerificationResult(data);
+                    } else {
+                        showResult('error', 'Quitus Non Trouvé', data.message || 'Le code de vérification n\'existe pas.');
+                    }
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error('Erreur:', error);
+                    showResult('error', 'Erreur de Vérification', 'Une erreur s\'est produite. Vérifiez que le code est correct.');
+                });
+        }
+
+        function displayVerificationResult(data) {
+            let statusClass = 'success';
+            let statusLabel = '✓ VALIDE';
+            let statusColor = '#28a745';
+
+            if (data.statut === 'EXPIRE') {
+                statusClass = 'error';
+                statusLabel = '✗ EXPIRÉ';
+                statusColor = '#dc3545';
+            } else if (data.statut === 'ANNULE') {
+                statusClass = 'error';
+                statusLabel = '✗ ANNULÉ';
+                statusColor = '#dc3545';
+            }
+
+            const html = `
+                <div class="result-success">
+                    <strong style="color: ${statusColor};">
+                        <i class="fas fa-check-circle"></i> ${statusLabel}
+                    </strong>
+                    <div class="result-details">
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Numéro Quitus:</span>
+                            <span>${data.numero_quitus}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Bénéficiaire:</span>
+                            <span>${data.nom_prenoms}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Raison Sociale:</span>
+                            <span>${data.raison_sociale || 'N/A'}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">CNI:</span>
+                            <span>${data.cni}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Date Émission:</span>
+                            <span>${data.date_emission}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Date Validité:</span>
+                            <span>${data.date_validite}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Statut:</span>
+                            <span style="color: ${statusColor}; font-weight: 600;">${data.statut}</span>
+                        </div>
+                        <div class="result-detail-row">
+                            <span class="result-detail-label">Agent Responsable:</span>
+                            <span>${data.agent}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const resultBox = document.getElementById('result-box');
+            resultBox.innerHTML = html;
+            resultBox.classList.add('show');
+        }
+
+        function showResult(type, title, message) {
+            const resultClass = type === 'error' ? 'result-error' : 'result-info';
+            const icon = type === 'error' ? 'exclamation-circle' : 'info-circle';
+
+            const html = `
+                <div class="${resultClass}">
+                    <p class="result-content">
+                        <strong><i class="fas fa-${icon}"></i> ${title}</strong>
+                        <br>${message}
+                    </p>
+                </div>
+            `;
+
+            const resultBox = document.getElementById('result-box');
+            resultBox.innerHTML = html;
+            resultBox.classList.add('show');
+        }
+
+        function showLoading(show) {
+            const loader = document.getElementById('loading');
+            if (show) {
+                loader.classList.add('show');
+            } else {
+                loader.classList.remove('show');
+            }
+        }
+
+        function initQRScanner() {
+            const video = document.getElementById('qr-video');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showResult('error', 'Erreur', 'Votre navigateur ne supporte pas l\'accès à la caméra');
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    video.style.display = 'block';
+                    video.srcObject = stream;
+                    scanQRCode(video);
+                })
+                .catch(err => {
+                    showResult('info', 'Caméra non disponible', 'Veuillez charger une image de QR Code à la place');
+                });
+        }
+
+        function scanQRCode(video) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const scan = () => {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        verifyCode(code.data);
+                        return;
+                    }
+                }
+                requestAnimationFrame(scan);
+            };
+            scan();
+        }
+
+        // Gestion du chargement de fichier QR Code
+        document.getElementById('qr-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        verifyCode(code.data);
+                    } else {
+                        showResult('error', 'QR Code non trouvé', 'L\'image ne contient pas de QR Code valide');
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Entrée du code automatique
+        document.getElementById('verification-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyByCode();
+            }
+        });
+    </script>
+{% endblock %}

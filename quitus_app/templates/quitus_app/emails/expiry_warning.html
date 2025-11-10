@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert-box p {
+            margin: 5px 0;
+            color: #856404;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box p {
+            margin: 5px 0;
+            color: #004085;
+        }
+        .quitus-details {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #764ba2;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .urgent {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="icon">⚠️</div>
+            <h1>Avertissement d'Expiration</h1>
+            <p>Votre Quitus expirera bientôt</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Bonjour <strong>{{ recipient_name }}</strong>,
+            </div>
+
+            <p>
+                Nous vous informons que votre Quitus <strong>{{ quitus.numero_quitus }}</strong> 
+                expirera dans <span class="urgent">{{ days_remaining }} jours</span>.
+            </p>
+
+            <!-- Alert Box -->
+            <div class="alert-box">
+                <p><strong>📅 Date d'expiration:</strong> {{ expiry_date }}</p>
+                <p>Nous vous recommandons de renouveler votre Quitus dès que possible.</p>
+            </div>
+
+            <!-- Quitus Details -->
+            <div class="quitus-details">
+                <div class="detail-row">
+                    <span class="detail-label">Numéro Quitus:</span>
+                    <span class="detail-value">{{ quitus.numero_quitus }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Bénéficiaire:</span>
+                    <span class="detail-value">{{ quitus.nom_prenoms }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">CNI:</span>
+                    <span class="detail-value">{{ quitus.cni }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Activité:</span>
+                    <span class="detail-value">{{ quitus.activite }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date Émission:</span>
+                    <span class="detail-value">{{ quitus.date_emission|date:"d/m/Y" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date Validité:</span>
+                    <span class="detail-value">{{ quitus.date_validite|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+
+            <!-- Action Information -->
+            <div class="info-box">
+                <p><strong>✓ Actions à prendre:</strong></p>
+                <p>1. Connectez-vous à votre compte Gestion Quitus</p>
+                <p>2. Consultez votre Quitus pour vérifier les détails</p>
+                <p>3. Initiez le renouvellement si nécessaire</p>
+            </div>
+
+            <p>
+                Pour toute question ou besoin d'assistance, veuillez contacter notre équipe support.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Gestion Quitus - Plateforme PAL</strong></p>
+            <p>Email généré automatiquement le {{ notification_date }}</p>
+            <p>© 2025 Togoport. Tous droits réservés.</p>
+            <p>Cet email a été envoyé car votre Quitus expire bientôt. Ne pas répondre à cet email.</p>
+        </div>
+    </div>
+</body>
+</html>

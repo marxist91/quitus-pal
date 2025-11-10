@@ -1,0 +1,367 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}Vérification Quitus - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}Vérification d'Attestation Portuaire{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .status-section {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 15px 35px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .status-badge.valide {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .status-badge.expire {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+        }
+
+        .status-badge.invalide {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .status-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .status-icon.valide { color: #28a745; }
+        .status-icon.expire { color: #ffc107; }
+        .status-icon.invalide { color: #dc3545; }
+
+        .validity-alert {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .validity-alert i {
+            font-size: 25px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .validity-alert.success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            color: #155724;
+        }
+
+        .validity-alert.warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            color: #856404;
+        }
+
+        .validity-alert.danger {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            color: #721c24;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--pal-blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .info-section h4 {
+            color: var(--pal-blue);
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-section h4 i {
+            margin-right: 10px;
+            color: var(--pal-yellow);
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child { border-bottom: none; }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            color: #212529;
+        }
+
+        .actions-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn-custom {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            margin: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-custom i {
+            margin-right: 8px;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0,123,255,0.4);
+            color: white;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(108,117,125,0.4);
+            color: white;
+        }
+
+        .timeline-bar {
+            width: 100%;
+            height: 25px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        }
+
+        .timeline-progress.warning {
+            background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
+        }
+
+        .timeline-progress.danger {
+            background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+        }
+
+        @media (max-width: 768px) {
+            .info-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .btn-custom {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {% if erreur %}
+        <!-- Message d'erreur -->
+        <div class="status-section">
+            <div class="status-icon invalide">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="status-badge invalide">
+                <i class="fas fa-exclamation-triangle"></i> DOCUMENT INVALIDE
+            </div>
+            <p style="color: #6c757d; font-size: 1rem; margin-top: 15px;">{{ erreur }}</p>
+        </div>
+
+        <div class="validity-alert danger" style="margin: 20px 0;">
+            <i class="fas fa-shield-alt"></i>
+            <div>
+                <strong>Attention !</strong><br>
+                Ce code de vérification n'est pas reconnu dans notre système. En cas de doute, veuillez contacter le Port Autonome de Lomé.
+            </div>
+        </div>
+
+        <div class="actions-section">
+            <a href="{% url 'recherche_quitus' %}" class="btn-custom btn-back">
+                <i class="fas fa-arrow-left"></i> Retourner à la recherche
+            </a>
+        </div>
+
+    {% elif quitus %}
+        <!-- Statut de validité -->
+        <div class="status-section">
+            {% if valide %}
+                <div class="status-icon valide">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="status-badge valide">
+                    <i class="fas fa-shield-check"></i> AUTHENTIQUE ET VALIDE
+                </div>
+            {% elif quitus.statut == 'ANNULE' %}
+                <div class="status-icon invalide">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <div class="status-badge invalide">
+                    <i class="fas fa-times-circle"></i> DOCUMENT ANNULÉ
+                </div>
+            {% else %}
+                <div class="status-icon expire">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="status-badge expire">
+                    <i class="fas fa-clock"></i> DOCUMENT EXPIRÉ
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Alert de validité -->
+        {% if valide %}
+            {% if jours_restants <= 30 %}
+                <div class="validity-alert warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Attention !</strong> Expire dans <strong>{{ jours_restants }} jour{{ jours_restants|pluralize }}</strong>
+                    </div>
+                </div>
+            {% else %}
+                <div class="validity-alert success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Valable {{ jours_restants }} jours</strong> jusqu'au {{ quitus.date_validite|date:"d/m/Y" }}
+                    </div>
+                </div>
+            {% endif %}
+        {% elif quitus.statut == 'ANNULE' %}
+            <div class="validity-alert danger">
+                <i class="fas fa-ban"></i>
+                <div><strong>Document annulé</strong> - Contactez le Port Autonome de Lomé</div>
+            </div>
+        {% else %}
+            <div class="validity-alert danger">
+                <i class="fas fa-calendar-times"></i>
+                <div><strong>Expiré le {{ quitus.date_validite|date:"d/m/Y" }}</strong></div>
+            </div>
+        {% endif %}
+
+        <!-- Informations du quitus -->
+        <!-- Informations générales -->
+        <div class="info-section">
+            <h4><i class="fas fa-file-certificate"></i> Informations du Document</h4>
+            <div class="info-row">
+                <div class="info-label">Numéro :</div>
+                <div class="info-value"><strong>{{ quitus.numero_quitus }}</strong></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Date d'émission :</div>
+                <div class="info-value">{{ quitus.date_emission|date:"d/m/Y" }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Date de validité :</div>
+                <div class="info-value">{{ quitus.date_validite|date:"d/m/Y" }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Code de vérification :</div>
+                <div class="info-value"><code style="background: #f8f9fa; padding: 3px 6px; border-radius: 3px;">{{ quitus.code_verification }}</code></div>
+            </div>
+        </div>
+
+        <!-- Informations du client -->
+        <div class="info-section">
+            <h4><i class="fas fa-user-tie"></i> Bénéficiaire</h4>
+            <div class="info-row">
+                <div class="info-label">Nom :</div>
+                <div class="info-value"><strong>{{ quitus.nom_prenoms }}</strong></div>
+            </div>
+            {% if quitus.raison_sociale %}
+            <div class="info-row">
+                <div class="info-label">Raison Sociale :</div>
+                <div class="info-value">{{ quitus.raison_sociale }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">CNI :</div>
+                <div class="info-value">{{ quitus.cni }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Nationalité :</div>
+                <div class="info-value">{{ quitus.nationalite }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Activité :</div>
+                <div class="info-value">{{ quitus.activite }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Compte PAL :</div>
+                <div class="info-value">{{ quitus.compte_pal }}</div>
+            </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="info-section">
+            <h4><i class="fas fa-address-card"></i> Coordonnées</h4>
+            <div class="info-row">
+                <div class="info-label">Téléphone :</div>
+                <div class="info-value"><i class="fas fa-phone"></i> {{ quitus.telephone }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Email :</div>
+                <div class="info-value"><i class="fas fa-envelope"></i> {{ quitus.email }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Adresse :</div>
+                <div class="info-value">{{ quitus.situation_geo }}</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+            {% if quitus.pdf_file %}
+            <a href="{% url 'telecharger_quitus' quitus.numero_quitus %}" class="btn-custom btn-download">
+                <i class="fas fa-download"></i> Télécharger le PDF
+            </a>
+            {% endif %}
+            <a href="{% url 'recherche_quitus' %}" class="btn-custom btn-back">
+                <i class="fas fa-arrow-left"></i> Nouvelle recherche
+            </a>
+        </div>
+
+    {% endif %}
+{% endblock %}

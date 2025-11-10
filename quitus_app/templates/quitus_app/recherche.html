@@ -1,0 +1,222 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}Recherche de Quitus - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}Recherche et Vérification de Quitus{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .search-section {
+            max-width: 800px;
+            margin: 0 auto 30px;
+        }
+
+        .search-form {
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .form-row-custom {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group-custom {
+            margin-bottom: 0;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--pal-blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .result-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .result-status.valide {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-status.expire {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .export-btn-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-export:hover {
+            color: white;
+            text-decoration: none;
+            background: linear-gradient(135deg, #138496 0%, #0c5460 100%);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Info box -->
+    <div class="info-box" style="margin-bottom: 30px;">
+        <i class="fas fa-info-circle"></i>
+        <strong>Recherche Avancée :</strong> Utilisez le formulaire ci-dessous pour rechercher un quitus avec filtres par statut et plage de dates.
+    </div>
+
+    <!-- Formulaire de recherche avancée -->
+    <div class="search-section">
+        <form method="post" class="search-form">
+            {% csrf_token %}
+            
+            <!-- Ligne 1: Recherche textuelle -->
+            <div class="form-row-custom">
+                <div class="form-group-custom">
+                    <label class="form-label">{{ form.query.label }}</label>
+                    {{ form.query }}
+                    {% if form.query.help_text %}
+                        <small class="form-text text-muted d-block">{{ form.query.help_text|safe }}</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Ligne 2: Statut et dates -->
+            <div class="form-row-custom">
+                <div class="form-group-custom">
+                    <label class="form-label">{{ form.statut.label }}</label>
+                    {{ form.statut }}
+                </div>
+                <div class="form-group-custom">
+                    <label class="form-label">{{ form.date_from.label }}</label>
+                    {{ form.date_from }}
+                </div>
+                <div class="form-group-custom">
+                    <label class="form-label">{{ form.date_to.label }}</label>
+                    {{ form.date_to }}
+                </div>
+            </div>
+
+            <!-- Messages d'erreur -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Boutons -->
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Rechercher
+                </button>
+                <a href="{% url 'recherche_quitus' %}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Résultats de la recherche -->
+    {% if query_used %}
+        {% if results %}
+            <div class="results-section">
+                <h4><i class="fas fa-list"></i> Résultats ({{ result_count }} quitus trouvé{{ result_count|pluralize }})</h4>
+                
+                <!-- Bouton export -->
+                <div class="export-btn-section">
+                    <a href="{% url 'export_quitus_csv' %}?{% if request.POST.query %}q={{ request.POST.query }}{% endif %}{% if request.POST.statut %}&statut={{ request.POST.statut }}{% endif %}{% if request.POST.date_from %}&date_from={{ request.POST.date_from }}{% endif %}{% if request.POST.date_to %}&date_to={{ request.POST.date_to }}{% endif %}" class="btn-export">
+                        <i class="fas fa-download"></i> Exporter en CSV
+                    </a>
+                </div>
+
+                <!-- Tableau des résultats -->
+                {% if result_count > 0 %}
+                    <div style="margin-top: 20px;">
+                        {% for quitus in results %}
+                            <div class="result-card">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h5 style="margin-bottom: 10px;">
+                                            <strong>{{ quitus.numero_quitus }}</strong>
+                                            {% if quitus.est_valide %}
+                                                <span class="result-status valide"><i class="fas fa-check-circle"></i> Valide</span>
+                                            {% else %}
+                                                <span class="result-status expire"><i class="fas fa-clock"></i> Expiré</span>
+                                            {% endif %}
+                                        </h5>
+                                        <p style="margin: 5px 0; color: #555;">
+                                            <i class="fas fa-user"></i> <strong>{{ quitus.nom_prenoms }}</strong>
+                                        </p>
+                                        {% if quitus.raison_sociale %}
+                                            <p style="margin: 5px 0; color: #555;">
+                                                <i class="fas fa-building"></i> {{ quitus.raison_sociale }}
+                                            </p>
+                                        {% endif %}
+                                        <p style="margin: 5px 0; color: #777; font-size: 0.9rem;">
+                                            <i class="fas fa-id-card"></i> CNI: {{ quitus.cni }}
+                                        </p>
+                                        <p style="margin: 5px 0; color: #777; font-size: 0.9rem;">
+                                            <i class="far fa-calendar"></i> Valide jusqu'au: <strong>{{ quitus.date_validite|date:"d/m/Y" }}</strong>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <a href="{% url 'verifier_quitus' quitus.code_verification %}" 
+                                           class="btn btn-info btn-sm" 
+                                           style="margin-bottom: 8px; width: 100%;">
+                                            <i class="fas fa-eye"></i> Voir détails
+                                        </a>
+                                        {% if quitus.pdf_file %}
+                                            <a href="{% url 'telecharger_quitus' quitus.numero_quitus %}" 
+                                               class="btn btn-primary btn-sm" 
+                                               style="width: 100%;">
+                                                <i class="fas fa-download"></i> Télécharger PDF
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center" style="margin-top: 20px;">
+                <i class="fas fa-search"></i> Aucun résultat trouvé pour les critères sélectionnés
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info text-center" style="margin-top: 20px;">
+            <i class="fas fa-info-circle"></i> Veuillez effectuer une recherche en utilisant le formulaire ci-dessus
+        </div>
+    {% endif %}
+{% endblock %}
