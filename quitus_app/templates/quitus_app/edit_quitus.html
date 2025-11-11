@@ -1,0 +1,156 @@
+{% extends 'quitus_app/base.html' %}
+{% load static %}
+
+{% block title %}Éditer Quitus {{ quitus.numero_quitus }} - PAL{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> Éditer le Quitus {{ quitus.numero_quitus }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Attention :</strong> Modifiez uniquement les informations erronées. 
+                        Les modifications seront enregistrées dans l'historique.
+                    </div>
+
+                    <form method="POST" id="editForm">
+                        {% csrf_token %}
+
+                        <!-- Informations du client -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-user-tie"></i> Informations du Client</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nom_prenoms" class="form-label">
+                                            Nom et Prénoms <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="nom_prenoms" name="nom_prenoms" 
+                                               value="{{ quitus.nom_prenoms }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="raison_sociale" class="form-label">Raison Sociale</label>
+                                        <input type="text" class="form-control" id="raison_sociale" name="raison_sociale" 
+                                               value="{{ quitus.raison_sociale|default:'' }}">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cni" class="form-label">
+                                            N° CNI <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="cni" name="cni" 
+                                               value="{{ quitus.cni }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nationalite" class="form-label">
+                                            Nationalité <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="nationalite" name="nationalite" 
+                                               value="{{ quitus.nationalite }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="compte_pal" class="form-label">
+                                            N° Compte PAL <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="compte_pal" name="compte_pal" 
+                                               value="{{ quitus.compte_pal }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nif" class="form-label">
+                                            NIF <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="nif" name="nif" 
+                                               value="{{ quitus.nif }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="activite" class="form-label">
+                                        Activité Principale <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="activite" name="activite" 
+                                           value="{{ quitus.activite }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coordonnées -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Coordonnées</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="telephone" class="form-label">
+                                            Téléphone <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="tel" class="form-control" id="telephone" name="telephone" 
+                                               value="{{ quitus.telephone }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">
+                                            Email <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="email" class="form-control" id="email" name="email" 
+                                               value="{{ quitus.email }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="situation_geo" class="form-label">
+                                        Situation Géographique <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="situation_geo" name="situation_geo" 
+                                           value="{{ quitus.situation_geo }}" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="adresse_postale" class="form-label">
+                                        Adresse Postale <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="adresse_postale" name="adresse_postale" 
+                                           value="{{ quitus.adresse_postale }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'detail_quitus' numero_quitus=quitus.numero_quitus %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Confirmation avant soumission
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir enregistrer ces modifications ?')) {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -14,7 +15,8 @@
         }
 
         body { 
-            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
+            background: url("{% static 'images/pal-fond.jpg' %}") no-repeat center center fixed;
+            background-size: cover;
             font-family: 'Segoe UI', Arial, sans-serif;
             min-height: 100vh;
             padding: 0;
@@ -31,6 +33,14 @@
             font-weight: bold;
             font-size: 1.3rem;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-logo {
+            height: 40px;
+            width: auto;
+            margin-right: 12px;
         }
 
         .nav-link {
@@ -421,7 +431,8 @@
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'index' %}">
-            <i class="fas fa-anchor"></i> Port Autonome de Lomé
+            <img src="{% static 'images/lo.png' %}" alt="Logo PAL" class="navbar-logo">
+            Port Autonome de Lomé
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -444,12 +455,45 @@
                             <i class="fas fa-search"></i> Recherche
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'history_log' %}active{% endif %}" href="{% url 'history_log' %}">
+                            <i class="fas fa-history"></i> Historique
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'expiry_monitor' %}active{% endif %}" href="{% url 'expiry_monitor' %}">
+                            <i class="fas fa-calendar-check"></i> Suivi Expirations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'notifications_dashboard' %}active{% endif %}" href="{% url 'notifications_dashboard' %}">
+                            <i class="fas fa-bell"></i> Notifications
+                            {% if user.is_staff or user.is_superuser %}
+                                {% with pending_count=0 %}
+                                {% if pending_count > 0 %}
+                                <span class="badge bg-danger rounded-pill">{{ pending_count }}</span>
+                                {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle"></i> {{ user.first_name|default:user.username }}
+                            <i class="fas fa-user-circle"></i> 
+                            {% if user.first_name and user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% elif user.first_name %}
+                                {{ user.first_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cogs"></i> Administration</a></li>
+                            <li><a class="dropdown-item" href="{% url 'change_password' %}"><i class="fas fa-key"></i> Changer le mot de passe</a></li>
+                            {% if user.is_superuser %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cogs"></i> Administration Django</a></li>
+                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
                         </ul>

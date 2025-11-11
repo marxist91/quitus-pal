@@ -221,6 +221,16 @@
             </a>
         </div>
 
+        <!-- Suivi Expirations -->
+        <div class="feature-card">
+            <i class="fas fa-calendar-check"></i>
+            <h3>Suivi Expirations</h3>
+            <p>Surveillez les dates d'expiration avec code couleur et envoyez des notifications.</p>
+            <a href="{% url 'expiry_monitor' %}" class="btn btn-danger">
+                <i class="fas fa-hourglass-half"></i> Surveiller
+            </a>
+        </div>
+
         <!-- Vérifier un Quitus -->
         <div class="feature-card">
             <i class="fas fa-check-circle"></i>
@@ -241,15 +251,49 @@
             </a>
         </div>
 
-        <!-- Administration -->
+        <!-- Gestion des Utilisateurs -->
+        {% if user.is_superuser or user.is_staff %}
+        <div class="feature-card">
+            <i class="fas fa-users-cog"></i>
+            <h3>Gestion Utilisateurs</h3>
+            <p>Gérez les utilisateurs, leurs rôles et permissions directement depuis le dashboard.</p>
+            <a href="{% url 'dashboard_users' %}" class="btn btn-primary">
+                <i class="fas fa-users"></i> Gérer
+            </a>
+        </div>
+        
+        <!-- Statistiques Agents -->
+        <div class="feature-card">
+            <i class="fas fa-chart-line"></i>
+            <h3>Statistiques Agents</h3>
+            <p>Consultez les performances et l'activité de chaque agent.</p>
+            <a href="{% url 'dashboard_stats' %}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> Voir Stats
+            </a>
+        </div>
+        
+        <!-- Notifications -->
+        <div class="feature-card">
+            <i class="fas fa-bell"></i>
+            <h3>Notifications</h3>
+            <p>Gérez et suivez toutes les notifications email envoyées aux bénéficiaires.</p>
+            <a href="{% url 'notifications_dashboard' %}" class="btn btn-warning">
+                <i class="fas fa-envelope"></i> Voir Notifications
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Administration Django -->
+        {% if user.is_superuser %}
         <div class="feature-card">
             <i class="fas fa-cogs"></i>
-            <h3>Administration</h3>
-            <p>Accédez à l'interface d'administration pour gérer les utilisateurs et les données.</p>
+            <h3>Admin Django</h3>
+            <p>Accédez à l'interface d'administration Django pour la configuration avancée.</p>
             <a href="/admin/" class="btn btn-dark">
                 <i class="fas fa-lock"></i> Admin
             </a>
         </div>
+        {% endif %}
     </div>
 
     <!-- Statistics Section -->

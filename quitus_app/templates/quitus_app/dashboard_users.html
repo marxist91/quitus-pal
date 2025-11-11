@@ -1,0 +1,301 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}Gestion des Utilisateurs - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .stats-section {
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-box .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-box .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-box .label {
+            color: #666;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .stat-box.total .icon { color: #007bff; }
+        .stat-box.total { border-left-color: #007bff; }
+
+        .stat-box.actifs .icon { color: #28a745; }
+        .stat-box.actifs { border-left-color: #28a745; }
+
+        .stat-box.inactifs .icon { color: #6c757d; }
+        .stat-box.inactifs { border-left-color: #6c757d; }
+
+        .stat-box.admins .icon { color: #dc3545; }
+        .stat-box.admins { border-left-color: #dc3545; }
+
+        .stat-box.chefs .icon { color: #ffc107; }
+        .stat-box.chefs { border-left-color: #ffc107; }
+
+        .stat-box.agents .icon { color: #17a2b8; }
+        .stat-box.agents { border-left-color: #17a2b8; }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        .users-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .table thead th {
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge-role {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            border-radius: 5px;
+            margin: 2px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Statistiques -->
+    <div class="stats-section">
+        <h3 style="text-align: center; color: #007bff; margin-bottom: 30px;">
+            <i class="fas fa-chart-bar"></i> Statistiques des Utilisateurs
+        </h3>
+        <div class="stats-grid">
+            <div class="stat-box total">
+                <div class="icon"><i class="fas fa-users"></i></div>
+                <div class="number">{{ stats.total }}</div>
+                <div class="label">Total Utilisateurs</div>
+            </div>
+            <div class="stat-box actifs">
+                <div class="icon"><i class="fas fa-user-check"></i></div>
+                <div class="number">{{ stats.actifs }}</div>
+                <div class="label">Actifs</div>
+            </div>
+            <div class="stat-box inactifs">
+                <div class="icon"><i class="fas fa-user-slash"></i></div>
+                <div class="number">{{ stats.inactifs }}</div>
+                <div class="label">Inactifs</div>
+            </div>
+            <div class="stat-box admins">
+                <div class="icon"><i class="fas fa-user-shield"></i></div>
+                <div class="number">{{ stats.admins }}</div>
+                <div class="label">Admins</div>
+            </div>
+            <div class="stat-box chefs">
+                <div class="icon"><i class="fas fa-user-tie"></i></div>
+                <div class="number">{{ stats.chefs }}</div>
+                <div class="label">Chefs/Directeurs</div>
+            </div>
+            <div class="stat-box agents">
+                <div class="icon"><i class="fas fa-user-cog"></i></div>
+                <div class="number">{{ stats.agents }}</div>
+                <div class="label">Agents</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton Ajouter -->
+    <div class="action-buttons">
+        <a href="{% url 'add_user' %}" class="btn btn-add">
+            <i class="fas fa-user-plus"></i> Ajouter un utilisateur
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Table des utilisateurs -->
+    <div class="users-table">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Email</th>
+                    <th>Nom Complet</th>
+                    <th>Rôle</th>
+                    <th>Statut</th>
+                    <th>Quitus Créés</th>
+                    <th>Inscription</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in users_data %}
+                <tr>
+                    <td><strong>{{ data.user.username }}</strong></td>
+                    <td>{{ data.user.email }}</td>
+                    <td>{{ data.user.get_full_name|default:"—" }}</td>
+                    <td>
+                        <span class="badge bg-{{ data.role_badge }} badge-role">
+                            {{ data.role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if data.user.is_active %}
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> Actif
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-inactive">
+                                <i class="fas fa-times-circle"></i> Inactif
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-info">{{ data.quitus_count }}</span>
+                    </td>
+                    <td>{{ data.user.date_joined|date:"d/m/Y" }}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'edit_user' data.user.id %}" 
+                               class="btn btn-sm btn-warning btn-action" 
+                               title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            
+                            <form method="post" action="{% url 'toggle_user_status' data.user.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="btn btn-sm btn-{% if data.user.is_active %}secondary{% else %}success{% endif %} btn-action"
+                                        title="{% if data.user.is_active %}Désactiver{% else %}Activer{% endif %}"
+                                        {% if data.user == user %}disabled{% endif %}>
+                                    <i class="fas fa-{% if data.user.is_active %}ban{% else %}check{% endif %}"></i>
+                                </button>
+                            </form>
+                            
+                            {% if user.is_superuser %}
+                            <form method="post" action="{% url 'delete_user' data.user.id %}" 
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer {{ data.user.username }} ?');">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="btn btn-sm btn-danger btn-action" 
+                                        title="Supprimer"
+                                        {% if data.user == user %}disabled{% endif %}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-3"></i>
+                        <p>Aucun utilisateur trouvé</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "quitus_app/base.html" %}
+
+{% block title %}{{ page_title }} - Port Autonome de Lomé{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .form-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 5px solid #007bff;
+        }
+
+        .form-section h5 {
+            color: #007bff;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .form-section h5 i {
+            margin-right: 10px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .required-star {
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 3px;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            font-weight: bold;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+            color: white;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .info-box i {
+            color: #0066cc;
+            margin-right: 10px;
+        }
+
+        .role-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="form-card">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Info box -->
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Information :</strong> 
+            {% if user_to_edit %}
+                Modifiez les informations de l'utilisateur et son rôle.
+            {% else %}
+                Créez un nouvel utilisateur en remplissant tous les champs obligatoires.
+            {% endif %}
+        </div>
+
+        <form method="post" id="userForm">
+            {% csrf_token %}
+
+            <!-- Section: Informations personnelles -->
+            <div class="form-section">
+                <h5><i class="fas fa-user"></i> Informations Personnelles</h5>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.username.label }}
+                            <span class="required-star">*</span>
+                        </label>
+                        {{ form.username }}
+                        {% for error in form.username.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <small class="form-text text-muted">Nom d'utilisateur unique pour la connexion</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.email.label }}
+                            <span class="required-star">*</span>
+                        </label>
+                        {{ form.email }}
+                        {% for error in form.email.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.first_name.label }}
+                            <span class="required-star">*</span>
+                        </label>
+                        {{ form.first_name }}
+                        {% for error in form.first_name.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.last_name.label }}
+                            <span class="required-star">*</span>
+                        </label>
+                        {{ form.last_name }}
+                        {% for error in form.last_name.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Sécurité (seulement pour nouveau) -->
+            {% if not user_to_edit %}
+            <div class="form-section">
+                <h5><i class="fas fa-lock"></i> Sécurité</h5>
+                
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Mot de passe par défaut :</strong> Si vous laissez les champs vides, le mot de passe par défaut <strong>TogoPort2024@</strong> sera assigné.
+                    L'utilisateur pourra le changer lors de sa première connexion.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.password1.label }}
+                        </label>
+                        {{ form.password1 }}
+                        {% for error in form.password1.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <small class="form-text text-muted">{{ form.password1.help_text }}</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            {{ form.password2.label }}
+                        </label>
+                        {{ form.password2 }}
+                        {% for error in form.password2.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Section: Rôle et permissions -->
+            <div class="form-section">
+                <h5><i class="fas fa-user-shield"></i> Rôle et Permissions</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label">
+                        {{ form.role.label }}
+                        <span class="required-star">*</span>
+                    </label>
+                    {{ form.role }}
+                    {% for error in form.role.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    
+                    <div class="role-description mt-2">
+                        <div id="role-admin" style="display: none;">
+                            <strong>📌 Admin Plateforme :</strong> Accès complet au système, gestion des utilisateurs, configuration, tous les droits.
+                        </div>
+                        <div id="role-chef" style="display: none;">
+                            <strong>📌 Chef de Service/Directeur :</strong> Gestion et supervision, création/modification/suppression de quitus, gestion d'équipe, rapports.
+                        </div>
+                        <div id="role-agent" style="display: none;">
+                            <strong>📌 Agent :</strong> Créer et consulter les quitus, vérifier les documents, accès limité.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                        {{ form.is_active.label }}
+                    </label>
+                    <small class="form-text text-muted d-block">Décochez pour désactiver temporairement le compte</small>
+                </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-submit">
+                    <i class="fas fa-save"></i> 
+                    {% if user_to_edit %}Enregistrer les modifications{% else %}Créer l'utilisateur{% endif %}
+                </button>
+                <a href="{% url 'dashboard_users' %}" class="btn btn-cancel ms-3">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Afficher la description du rôle sélectionné
+        const roleSelect = document.querySelector('select[name="role"]');
+        const roleDescriptions = {
+            'admin': document.getElementById('role-admin'),
+            'chef': document.getElementById('role-chef'),
+            'agent': document.getElementById('role-agent')
+        };
+
+        function updateRoleDescription() {
+            // Masquer toutes les descriptions
+            Object.values(roleDescriptions).forEach(desc => {
+                if (desc) desc.style.display = 'none';
+            });
+
+            // Afficher la description du rôle sélectionné
+            const selectedRole = roleSelect.value;
+            if (roleDescriptions[selectedRole]) {
+                roleDescriptions[selectedRole].style.display = 'block';
+            }
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', updateRoleDescription);
+            // Afficher la description initiale
+            updateRoleDescription();
+        }
+
+        // Validation du formulaire
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            const password1 = document.querySelector('input[name="password1"]');
+            const password2 = document.querySelector('input[name="password2"]');
+            
+            if (password1 && password2) {
+                if (password1.value !== password2.value) {
+                    e.preventDefault();
+                    alert('Les mots de passe ne correspondent pas !');
+                    return false;
+                }
+                
+                if (password1.value.length < 8) {
+                    e.preventDefault();
+                    alert('Le mot de passe doit contenir au moins 8 caractères !');
+                    return false;
+                }
+            }
+        });
+
+        // Auto-ajout des classes Bootstrap
+        document.querySelectorAll('input:not([type="checkbox"]), select, textarea').forEach(function(element) {
+            if (!element.classList.contains('form-control') && !element.classList.contains('form-select')) {
+                if (element.tagName === 'SELECT') {
+                    element.classList.add('form-select');
+                } else {
+                    element.classList.add('form-control');
+                }
+            }
+        });
+    </script>
+{% endblock %}

@@ -117,13 +117,17 @@ class QuitusAdmin(admin.ModelAdmin):
     
     def actions_links(self, obj):
         """Liens d'actions rapides"""
-        telecharger_url = reverse('quitus:telecharger', args=[obj.numero_quitus])
-        verifier_url = reverse('quitus:verifier', args=[obj.code_verification])
+        if obj.pdf_file:
+            telecharger_url = reverse('telecharger_quitus', args=[obj.numero_quitus])
+            pdf_link = f'<a class="button" href="{telecharger_url}" target="_blank">📥 PDF</a> '
+        else:
+            pdf_link = '<span style="color: #999;">📥 Pas de PDF</span> '
+        
+        verifier_url = reverse('verifier_quitus', args=[obj.code_verification])
         
         return format_html(
-            '<a class="button" href="{}" target="_blank">📥 PDF</a> '
-            '<a class="button" href="{}" target="_blank">🔍 Vérifier</a>',
-            telecharger_url,
+            '{}<a class="button" href="{}" target="_blank">🔍 Vérifier</a>',
+            pdf_link,
             verifier_url
         )
     actions_links.short_description = 'Actions'

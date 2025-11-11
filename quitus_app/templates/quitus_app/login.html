@@ -1,4 +1,5 @@
 {% extends "quitus_app/base.html" %}
+{% load static %}
 
 {% block title %}Connexion - Gestion des Quitus - Port Autonome de Lomé{% endblock %}
 
@@ -6,12 +7,22 @@
 
 {% block extra_css %}
     <style>
+        /* Masquer le fond de base.html pour la page de login */
+        body {
+            background: none !important;
+        }
+        
         .login-container {
-            min-height: 100vh;
+            background: url("{% static 'images/pal.jpg' %}") no-repeat center center fixed;
+            background-size: cover;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
             padding: 20px;
         }
 
@@ -58,6 +69,23 @@
             color: var(--pal-blue);
             margin-bottom: 15px;
             display: block;
+        }
+
+        .login-logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        @media (max-width: 576px) {
+            .login-logo {
+                width: 160px;
+            }
+        }
+        @media (min-width: 992px) {
+            .login-logo {
+                width: 240px;
+            }
         }
 
         .form-group {
@@ -215,7 +243,7 @@
     <div class="login-card">
         <!-- En-tête -->
         <div class="login-header">
-            <i class="fas fa-lock login-icon logo-icon"></i>
+            <img src="{% static 'images/log.png' %}" alt="Logo PAL" class="login-logo">
             <h1>Connexion</h1>
             <p>Gestion des Quitus - Port Autonome de Lomé</p>
         </div>
@@ -223,7 +251,7 @@
         <!-- Info Banner -->
         <div class="info-banner">
             <i class="fas fa-info-circle"></i>
-            <strong>Bienvenue !</strong> Connectez-vous avec vos identifiants pour accéder à la plateforme.
+            <strong>Bienvenue !</strong> Connectez-vous avec votre <strong>email</strong> ou nom d'utilisateur.
         </div>
 
         <!-- Messages d'erreur -->

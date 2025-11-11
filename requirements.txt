@@ -4,3 +4,4 @@ reportlab
 qrcode[pil]
 pycryptodome
 PyPDF2
+openpyxl

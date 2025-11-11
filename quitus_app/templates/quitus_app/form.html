@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -14,15 +15,18 @@
         }
 
         body { 
-            background: linear-gradient(135deg, var(--pal-blue) 0%, var(--pal-light-blue) 100%);
+            background: url("{% static 'images/pal-fond.jpg' %}") no-repeat center center fixed;
+            background-size: cover;
             font-family: 'Segoe UI', Arial, sans-serif;
             min-height: 100vh;
-            padding: 20px 0;
+            padding: 0;
+            margin: 0;
         }
 
         .main-container {
             max-width: 1100px;
-            margin: 0 auto;
+            margin: 20px auto;
+            padding: 0 15px;
         }
 
         /* En-tête du Port */
@@ -602,6 +606,7 @@
                 </div>
 
                 <!-- Section: Agent -->
+                {% if not user_has_agent %}
                 <div class="form-section">
                     <div class="section-header">
                         <h5><i class="fas fa-user-shield"></i> AGENT RESPONSABLE</h5>
@@ -621,6 +626,19 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% else %}
+                <!-- Agent associé automatiquement -->
+                <div class="info-box" style="background: #d4edda; border-left-color: #28a745;">
+                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                    <strong>Agent responsable :</strong> 
+                    {% if user.get_full_name %}
+                        {{ user.get_full_name }} ({{ user.username }})
+                    {% else %}
+                        {{ user.username }}
+                    {% endif %}
+                    - Automatiquement assigné comme agent validateur de ce quitus.
+                </div>
+                {% endif %}
 
                 <!-- Zone de chargement -->
                 <div class="loading" id="loadingSpinner">

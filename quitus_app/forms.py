@@ -2,6 +2,7 @@ from django import forms
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import authenticate
 from .models import Quitus, Agent
 
 class QuitusForm(forms.ModelForm):
@@ -268,13 +269,13 @@ class SearchQuitusForm(forms.Form):
 
 
 class LoginForm(AuthenticationForm):
-    """Formulaire de connexion personnalisé"""
+    """Formulaire de connexion personnalisé - Authentification par email ou username"""
     
     username = forms.CharField(
-        label="Nom d'utilisateur",
+        label="Email ou Nom d'utilisateur",
         max_length=150,
         widget=forms.TextInput(attrs={
-            'placeholder': 'Votre nom d\'utilisateur',
+            'placeholder': 'Votre email ou nom d\'utilisateur',
             'class': 'form-control',
             'autofocus': True
         })
@@ -287,6 +288,30 @@ class LoginForm(AuthenticationForm):
             'class': 'form-control'
         })
     )
+    
+    def clean(self):
+        """Valider les identifiants - Permettre connexion par email"""
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+        
+        if username and password:
+            # Essayer d'abord de trouver l'utilisateur par email
+            user_by_email = User.objects.filter(email=username).first()
+            if user_by_email:
+                username = user_by_email.username
+            
+            # Authentifier
+            self.user_cache = authenticate(self.request, username=username, password=password)
+            
+            if self.user_cache is None:
+                raise forms.ValidationError(
+                    "Email/Nom d'utilisateur ou mot de passe incorrect.",
+                    code='invalid_login',
+                )
+            else:
+                self.confirm_login_allowed(self.user_cache)
+        
+        return self.cleaned_data
 
 
 class UserRegistrationForm(forms.ModelForm):
@@ -354,22 +379,162 @@ class UserRegistrationForm(forms.ModelForm):
 
 
 class UserRoleForm(forms.Form):
-    """Formulaire pour assigner les rôles aux utilisateurs"""
+    """Formulaire pour créer un utilisateur avec rôle"""
     
     ROLE_CHOICES = [
-        ('', '-- Sélectionner un rôle --'),
-        ('Agent', 'Agent - Créer et vérifier quitus'),
-        ('Chef_Directeur', 'Chef/Directeur - Gestion du service'),
-        ('Superuser', 'Superuser - Admin plateforme'),
+        ('admin', 'Admin Plateforme - Tous les droits'),
+        ('chef', 'Chef de Service/Directeur - Gestion et supervision'),
+        ('agent', 'Agent - Créer et gérer les quitus'),
     ]
     
-    user = forms.ModelChoiceField(
-        label="Utilisateur",
-        queryset=User.objects.filter(is_active=True),
-        widget=forms.Select(attrs={
-            'class': 'form-select'
+    username = forms.CharField(
+        label="Nom d'utilisateur",
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ex: jdupont'
         })
     )
+    
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'exemple@togoport.tg'
+        })
+    )
+    
+    first_name = forms.CharField(
+        label="Prénom",
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Jean'
+        })
+    )
+    
+    last_name = forms.CharField(
+        label="Nom",
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Dupont'
+        })
+    )
+    
+    password1 = forms.CharField(
+        label='Mot de passe',
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Laisser vide pour mot de passe par défaut (TogoPort2024@)'
+        }),
+        help_text="Au moins 8 caractères. Si vide, le mot de passe par défaut sera assigné."
+    )
+    
+    password2 = forms.CharField(
+        label='Confirmer le mot de passe',
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Retapez le mot de passe'
+        })
+    )
+    
+    role = forms.ChoiceField(
+        label="Rôle",
+        choices=ROLE_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        help_text="Définit les permissions de l'utilisateur"
+    )
+    
+    is_active = forms.BooleanField(
+        label="Compte actif",
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        })
+    )
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Ce nom d'utilisateur existe déjà.")
+        return username
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Cet email est déjà utilisé.")
+        return email.lower()
+    
+    def clean_password2(self):
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+        
+        # Si un mot de passe est fourni, vérifier la correspondance
+        if password1 or password2:
+            if password1 != password2:
+                raise forms.ValidationError("Les deux mots de passe ne correspondent pas.")
+            
+            if password1 and len(password1) < 8:
+                raise forms.ValidationError("Le mot de passe doit contenir au moins 8 caractères.")
+        
+        return password2
+    
+    def save(self):
+        """Créer l'utilisateur avec le rôle approprié"""
+        # Définir le mot de passe par défaut si aucun n'est fourni
+        password = self.cleaned_data.get('password1') or 'TogoPort2024@'
+        
+        user = User.objects.create_user(
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            password=password,
+            first_name=self.cleaned_data['first_name'],
+            last_name=self.cleaned_data['last_name'],
+            is_active=self.cleaned_data.get('is_active', True)
+        )
+        
+        role = self.cleaned_data['role']
+        
+        # Assigner les permissions selon le rôle
+        if role == 'admin':
+            user.is_superuser = True
+            user.is_staff = True
+        elif role == 'chef':
+            user.is_staff = True
+            # Ajouter permissions spécifiques chef
+            from django.contrib.auth.models import Permission
+            permissions = Permission.objects.filter(
+                codename__in=['view_quitus', 'add_quitus', 'change_quitus', 'delete_quitus',
+                             'view_historiquequitus', 'view_agent']
+            )
+            user.user_permissions.set(permissions)
+        else:  # agent
+            user.is_staff = False
+            # Permissions basiques agent
+            from django.contrib.auth.models import Permission
+            permissions = Permission.objects.filter(
+                codename__in=['view_quitus', 'add_quitus', 'view_historiquequitus']
+            )
+            user.user_permissions.set(permissions)
+        
+        user.save()
+        return user
+
+
+class UserEditForm(forms.ModelForm):
+    """Formulaire pour modifier un utilisateur existant"""
+    
+    ROLE_CHOICES = [
+        ('admin', 'Admin Plateforme - Tous les droits'),
+        ('chef', 'Chef de Service/Directeur - Gestion et supervision'),
+        ('agent', 'Agent - Créer et gérer les quitus'),
+    ]
     
     role = forms.ChoiceField(
         label="Rôle",
@@ -379,31 +544,115 @@ class UserRoleForm(forms.Form):
         })
     )
     
-    def clean_role(self):
-        role = self.cleaned_data.get('role')
-        if not role:
-            raise forms.ValidationError("Veuillez sélectionner un rôle.")
-        return role
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
     
-    def save(self):
-        user = self.cleaned_data['user']
-        role_name = self.cleaned_data['role']
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            # Déterminer le rôle actuel
+            if self.instance.is_superuser:
+                self.fields['role'].initial = 'admin'
+            elif self.instance.is_staff:
+                self.fields['role'].initial = 'chef'
+            else:
+                self.fields['role'].initial = 'agent'
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        role = self.cleaned_data['role']
         
-        if role_name == 'Superuser':
+        # Mettre à jour les permissions
+        if role == 'admin':
             user.is_superuser = True
             user.is_staff = True
-            user.save()
-            user.groups.clear()
-        else:
+        elif role == 'chef':
             user.is_superuser = False
             user.is_staff = True
-            user.save()
-            
-            # Assigner au groupe
-            try:
-                group = Group.objects.get(name=role_name)
-                user.groups.set([group])
-            except Group.DoesNotExist:
-                raise forms.ValidationError(f"Le groupe '{role_name}' n'existe pas. Exécutez: python manage.py create_roles")
+            from django.contrib.auth.models import Permission
+            permissions = Permission.objects.filter(
+                codename__in=['view_quitus', 'add_quitus', 'change_quitus', 'delete_quitus',
+                             'view_historiquequitus', 'view_agent']
+            )
+            user.user_permissions.set(permissions)
+        else:  # agent
+            user.is_superuser = False
+            user.is_staff = False
+            from django.contrib.auth.models import Permission
+            permissions = Permission.objects.filter(
+                codename__in=['view_quitus', 'add_quitus', 'view_historiquequitus']
+            )
+            user.user_permissions.set(permissions)
         
+        if commit:
+            user.save()
         return user
+
+
+class PasswordChangeForm(forms.Form):
+    """Formulaire pour changer le mot de passe"""
+    
+    old_password = forms.CharField(
+        label='Mot de passe actuel',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Entrez votre mot de passe actuel'
+        })
+    )
+    
+    new_password1 = forms.CharField(
+        label='Nouveau mot de passe',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Entrez le nouveau mot de passe'
+        }),
+        help_text='Minimum 8 caractères'
+    )
+    
+    new_password2 = forms.CharField(
+        label='Confirmer le nouveau mot de passe',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirmez le nouveau mot de passe'
+        })
+    )
+    
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+    
+    def clean_old_password(self):
+        """Vérifier que l'ancien mot de passe est correct"""
+        old_password = self.cleaned_data.get('old_password')
+        if not self.user.check_password(old_password):
+            raise forms.ValidationError('Le mot de passe actuel est incorrect.')
+        return old_password
+    
+    def clean_new_password2(self):
+        """Vérifier que les deux nouveaux mots de passe correspondent"""
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+        
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError('Les deux mots de passe ne correspondent pas.')
+            if len(password1) < 8:
+                raise forms.ValidationError('Le mot de passe doit contenir au moins 8 caractères.')
+        
+        return password2
+    
+    def save(self, commit=True):
+        """Sauvegarder le nouveau mot de passe"""
+        password = self.cleaned_data.get('new_password1')
+        self.user.set_password(password)
+        if commit:
+            self.user.save()
+        return self.user

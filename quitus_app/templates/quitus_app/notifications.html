@@ -1,0 +1,384 @@
+{% extends 'quitus_app/base.html' %}
+{% load static %}
+
+{% block title %}Notifications - PAL{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-bell"></i> Gestion des Notifications</h2>
+            <p class="text-muted">Historique et suivi des notifications email envoyées</p>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-envelope"></i> Total</h5>
+                    <h2>{{ stats.total }}</h2>
+                    <small>Notifications totales</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-check-circle"></i> Envoyées</h5>
+                    <h2>{{ stats.sent }}</h2>
+                    <small>Avec succès</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-clock"></i> En Attente</h5>
+                    <h2>{{ stats.pending }}</h2>
+                    <small>À traiter</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Échecs</h5>
+                    <h2>{{ stats.failed }}</h2>
+                    <small>À renvoyer</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques par type -->
+    {% if stats_by_type %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Répartition par Type</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for stat in stats_by_type %}
+                        <div class="col-md-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">
+                                    {% if stat.notification_type == 'EXPIRY_WARNING' %}
+                                        <i class="fas fa-hourglass-half text-warning"></i> Avert. Expiration
+                                    {% elif stat.notification_type == 'EXPIRY_EXPIRED' %}
+                                        <i class="fas fa-times-circle text-danger"></i> Expiration
+                                    {% elif stat.notification_type == 'VERIFICATION_FAILED' %}
+                                        <i class="fas fa-shield-alt text-danger"></i> Vérif. Échouée
+                                    {% elif stat.notification_type == 'SYSTEM_ALERT' %}
+                                        <i class="fas fa-bell text-info"></i> Alerte Système
+                                    {% endif %}
+                                </span>
+                                <span class="badge bg-primary rounded-pill">{{ stat.count }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> Filtres</h5>
+            {% if stats.failed > 0 %}
+            <form method="POST" action="{% url 'retry_all_failed_notifications' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Renvoyer toutes les notifications échouées ?')">
+                    <i class="fas fa-redo"></i> Renvoyer Tous les Échecs ({{ stats.failed }})
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Statut</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Tous</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="type" class="form-label">Type</label>
+                    <select name="type" id="type" class="form-select">
+                        <option value="">Tous</option>
+                        {% for value, label in notification_types %}
+                        <option value="{{ value }}" {% if filters.type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" name="email" id="email" class="form-control" 
+                           placeholder="destinataire@example.com" value="{{ filters.email }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">Date Début</label>
+                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ filters.date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">Date Fin</label>
+                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ filters.date_to }}">
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filtrer
+                    </button>
+                    <a href="{% url 'notifications_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau des notifications -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Historique des Notifications</h5>
+            <span class="badge bg-secondary">{{ paginator.count }} résultat(s)</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Date Création</th>
+                            <th>Type</th>
+                            <th>Destinataire</th>
+                            <th>Quitus</th>
+                            <th>Statut</th>
+                            <th>Envoyé Le</th>
+                            <th>Tentatives</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notif in notifications %}
+                        <tr>
+                            <td>{{ notif.id }}</td>
+                            <td>
+                                <small>{{ notif.created_at|date:"d/m/Y H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if notif.notification_type == 'EXPIRY_WARNING' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-hourglass-half"></i> Avert. Expiration
+                                    </span>
+                                {% elif notif.notification_type == 'EXPIRY_EXPIRED' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle"></i> Expiré
+                                    </span>
+                                {% elif notif.notification_type == 'VERIFICATION_FAILED' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-shield-alt"></i> Vérif. Échouée
+                                    </span>
+                                {% elif notif.notification_type == 'SYSTEM_ALERT' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-bell"></i> Alerte
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    <i class="fas fa-envelope"></i> {{ notif.recipient_email }}
+                                </div>
+                                {% if notif.recipient_name %}
+                                <small class="text-muted">{{ notif.recipient_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.quitus %}
+                                    <a href="{% url 'detail_quitus' numero_quitus=notif.quitus.numero_quitus %}">
+                                        {{ notif.quitus.numero_quitus }}
+                                    </a>
+                                {% else %}
+                                    <em class="text-muted">N/A</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.status == 'SENT' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Envoyé
+                                    </span>
+                                {% elif notif.status == 'PENDING' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock"></i> En attente
+                                    </span>
+                                {% elif notif.status == 'FAILED' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times"></i> Échoué
+                                    </span>
+                                {% elif notif.status == 'BOUNCED' %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-ban"></i> Rejeté
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.sent_at %}
+                                    <small>{{ notif.sent_at|date:"d/m/Y H:i" }}</small>
+                                {% else %}
+                                    <em class="text-muted">-</em>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if notif.retry_count > 0 %}
+                                    <span class="badge bg-warning">{{ notif.retry_count }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.status == 'FAILED' or notif.status == 'PENDING' %}
+                                <form method="POST" action="{% url 'retry_notification' notification_id=notif.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning" title="Renvoyer">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-sm btn-info" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#detailModal{{ notif.id }}"
+                                        title="Voir détails">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Modal de détails -->
+                        <div class="modal fade" id="detailModal{{ notif.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="fas fa-info-circle"></i> Détails Notification #{{ notif.id }}
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <dl class="row">
+                                            <dt class="col-sm-3">Type:</dt>
+                                            <dd class="col-sm-9">{{ notif.get_notification_type_display }}</dd>
+                                            
+                                            <dt class="col-sm-3">Destinataire:</dt>
+                                            <dd class="col-sm-9">{{ notif.recipient_email }} ({{ notif.recipient_name|default:"N/A" }})</dd>
+                                            
+                                            <dt class="col-sm-3">Statut:</dt>
+                                            <dd class="col-sm-9">{{ notif.get_status_display }}</dd>
+                                            
+                                            <dt class="col-sm-3">Sujet:</dt>
+                                            <dd class="col-sm-9">{{ notif.subject }}</dd>
+                                            
+                                            <dt class="col-sm-3">Message:</dt>
+                                            <dd class="col-sm-9">
+                                                <pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;">{{ notif.message_text }}</pre>
+                                            </dd>
+                                            
+                                            <dt class="col-sm-3">Créé le:</dt>
+                                            <dd class="col-sm-9">{{ notif.created_at|date:"d/m/Y à H:i:s" }}</dd>
+                                            
+                                            {% if notif.sent_at %}
+                                            <dt class="col-sm-3">Envoyé le:</dt>
+                                            <dd class="col-sm-9">{{ notif.sent_at|date:"d/m/Y à H:i:s" }}</dd>
+                                            {% endif %}
+                                            
+                                            <dt class="col-sm-3">Tentatives:</dt>
+                                            <dd class="col-sm-9">{{ notif.retry_count }}</dd>
+                                            
+                                            {% if notif.error_message %}
+                                            <dt class="col-sm-3">Erreur:</dt>
+                                            <dd class="col-sm-9">
+                                                <div class="alert alert-danger">{{ notif.error_message }}</div>
+                                            </dd>
+                                            {% endif %}
+                                        </dl>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Aucune notification trouvée</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if notifications.has_other_pages %}
+    <nav aria-label="Pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if notifications.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ notifications.previous_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.type %}&type={{ filters.type }}{% endif %}{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}">
+                    &laquo; Précédent
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Page {{ notifications.number }} / {{ paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if notifications.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ notifications.next_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.type %}&type={{ filters.type }}{% endif %}{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}">
+                    Suivant &raquo;
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Bouton retour -->
+    <div class="mt-4 mb-4">
+        <a href="{% url 'index' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>
+{% endblock %}

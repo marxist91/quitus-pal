@@ -1,0 +1,246 @@
+{% extends 'quitus_app/base.html' %}
+{% load static %}
+
+{% block title %}Statistiques Agents - PAL{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-bar"></i> Statistiques des Agents</h2>
+            <p class="text-muted">Tableau de bord des performances par agent</p>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques globales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-users"></i> Total Agents</h5>
+                    <h2>{{ total_agents }}</h2>
+                    <small>Agents {{ show_inactive|yesno:"(tous),actifs" }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-file-alt"></i> Total Quitus</h5>
+                    <h2>{{ total_quitus }}</h2>
+                    <small>Sur la période sélectionnée</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-chart-line"></i> Moyenne</h5>
+                    <h2>{{ avg_per_agent }}</h2>
+                    <small>Quitus par agent</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-trophy"></i> Plus Productif</h5>
+                    <h3>{{ most_productive.nom_complet|default:"N/A" }}</h3>
+                    <small>{{ most_productive.total_quitus|default:0 }} quitus</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> Filtres</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="period" class="form-label">Période</label>
+                    <select name="period" id="period" class="form-select">
+                        <option value="7" {% if period == '7' %}selected{% endif %}>7 derniers jours</option>
+                        <option value="30" {% if period == '30' %}selected{% endif %}>30 derniers jours</option>
+                        <option value="90" {% if period == '90' %}selected{% endif %}>3 derniers mois</option>
+                        <option value="180" {% if period == '180' %}selected{% endif %}>6 derniers mois</option>
+                        <option value="365" {% if period == '365' %}selected{% endif %}>1 an</option>
+                        <option value="0" {% if period == '0' %}selected{% endif %}>Tout l'historique</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Affichage</label>
+                    <div class="form-check">
+                        <input type="checkbox" name="show_inactive" value="true" 
+                               class="form-check-input" id="show_inactive"
+                               {% if show_inactive %}checked{% endif %}>
+                        <label class="form-check-label" for="show_inactive">
+                            Inclure les agents inactifs
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> Filtrer
+                    </button>
+                    <a href="{% url 'dashboard_stats' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau des statistiques -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Détails par Agent</h5>
+            <div>
+                <span class="badge bg-secondary">{{ agents_stats|length }} agent(s)</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Agent</th>
+                            <th>Fonction</th>
+                            <th>Matricule</th>
+                            <th class="text-center">Total Quitus</th>
+                            <th class="text-center">Actifs</th>
+                            <th class="text-center">Expirés</th>
+                            <th class="text-center">Annulés</th>
+                            <th>Dernier Quitus</th>
+                            <th class="text-center">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for agent in agents_stats %}
+                        <tr {% if not agent.actif %}class="table-secondary"{% endif %}>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ agent.nom_complet }}</strong>
+                                {% if not agent.actif %}
+                                    <span class="badge bg-secondary ms-2">Inactif</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ agent.fonction }}</td>
+                            <td><code>{{ agent.matricule }}</code></td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill fs-6">
+                                    {{ agent.total_quitus }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ agent.actifs }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-warning text-dark">{{ agent.expires }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ agent.annules }}</span>
+                            </td>
+                            <td>
+                                {% if agent.last_quitus_date %}
+                                    <small>{{ agent.last_quitus_date|date:"d/m/Y H:i" }}</small>
+                                {% else %}
+                                    <em class="text-muted">Aucun</em>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if agent.actif %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Actif
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times-circle"></i> Inactif
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Aucune statistique disponible pour cette période</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations complémentaires -->
+    {% if least_productive %}
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-star"></i> Agent le Plus Productif
+                </div>
+                <div class="card-body">
+                    <h5>{{ most_productive.nom_complet }}</h5>
+                    <p class="mb-1"><strong>Fonction:</strong> {{ most_productive.fonction }}</p>
+                    <p class="mb-1"><strong>Total Quitus:</strong> 
+                        <span class="badge bg-success fs-6">{{ most_productive.total_quitus }}</span>
+                    </p>
+                    <p class="mb-0"><strong>Répartition:</strong> 
+                        {{ most_productive.actifs }} actif(s), 
+                        {{ most_productive.expires }} expiré(s), 
+                        {{ most_productive.annules }} annulé(s)
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-info-circle"></i> Agent le Moins Productif
+                </div>
+                <div class="card-body">
+                    <h5>{{ least_productive.nom_complet }}</h5>
+                    <p class="mb-1"><strong>Fonction:</strong> {{ least_productive.fonction }}</p>
+                    <p class="mb-1"><strong>Total Quitus:</strong> 
+                        <span class="badge bg-info fs-6">{{ least_productive.total_quitus }}</span>
+                    </p>
+                    <p class="mb-0"><strong>Répartition:</strong> 
+                        {{ least_productive.actifs }} actif(s), 
+                        {{ least_productive.expires }} expiré(s), 
+                        {{ least_productive.annules }} annulé(s)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bouton retour -->
+    <div class="mt-4 mb-4">
+        <a href="{% url 'index' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>
+{% endblock %}

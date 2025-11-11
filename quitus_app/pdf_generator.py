@@ -331,8 +331,7 @@ def generate_quitus_pdf(quitus):
     c.drawString(30*mm, cert_y, texte5)
     
     # ==================== DATE ET SIGNATURE ====================
-    # Descendre la signature de 15 mm par rapport à la position précédente
-    # (la valeur précédente était 79 mm; on la réduit de 15 mm pour la descente)
+    # Position de base pour la signature (alignée avec QR code et TUV)
     signature_y = 64 * mm
     c.setFont("Helvetica", 10)
     date_emission = quitus.date_emission.strftime('%d/%m/%Y')
@@ -361,7 +360,7 @@ def generate_quitus_pdf(quitus):
     c.setFont("Helvetica", 8)
     c.drawCentredString(box_left + box_width/2, label_y, "Signature et cachet")
     
-    # ==================== QR CODE & LOGO TUV COTE A COTE ====================
+    # ==================== QR CODE & LOGO TUV COTE A COTE - MEME LIGNE ====================
     qr_data = (
         f"https://www.togoport.tg/verifier/{quitus.code_verification}\n"
         f"QUITUS: {quitus.numero_quitus}\n"
@@ -371,14 +370,19 @@ def generate_quitus_pdf(quitus):
     qr_buffer = generer_qr_code(qr_data)
     qr_image = ImageReader(qr_buffer)
 
+    # QR Code à gauche
     qr_size = 28*mm
     qr_x = 20*mm
-    qr_y = 20*mm
+    # Aligner QR code et signature sur la même ligne (même y que le bas du cadre signature)
+    qr_y = box_bottom
 
-    # TUV à droite du QR code - taille 45mm, déplacé vers le bas et vers la gauche
+    # TUV légèrement vers la gauche et vers le bas par rapport au QR code
     tuv_size = 45*mm
-    tuv_x = qr_x + qr_size + 2*mm  # Déplacé vers la gauche (de 8mm à 2mm)
-    tuv_y = qr_y - 10*mm  # Déplacé vers le bas
+    # Déplacer légèrement vers la gauche (de 42% à 35%)
+    tuv_x = width * 0.35  # Position plus à gauche
+    # Descendre de 7mm par rapport au QR code
+    tuv_y = qr_y - 9*mm  # 7mm plus bas que le QR code
+    
     try:
         tuv_image = ImageReader(TUV_LOGO_PATH)
         # Ajuster le logo TUV dans un carré en conservant ratio (letterbox)
