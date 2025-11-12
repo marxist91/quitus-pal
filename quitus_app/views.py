@@ -13,7 +13,7 @@ import csv
 import qrcode
 from datetime import datetime
 from .forms import QuitusForm, SearchQuitusForm, LoginForm, UserRegistrationForm
-from .models import Quitus, HistoriqueQuitus, Agent, HistoriqueNotifications
+from .models import Quitus, HistoriqueQuitus, HistoriqueNotifications, UserProfile
 from django.db.models import Q, Count
 from .pdf_generator import generate_quitus_pdf
 from .audit import AuditLogger
@@ -218,30 +218,15 @@ def creer_quitus(request):
     """Vue pour créer un nouveau quitus"""
     if request.method == 'POST':
         form = QuitusForm(request.POST)
-        # Rendre le champ agent optionnel pour la validation
-        form.fields['agent'].required = False
         
         if form.is_valid():
             # Créer le quitus
             quitus = form.save(commit=False)
             quitus.ip_creation = get_client_ip(request)
             
-            # Associer automatiquement l'agent de l'utilisateur connecté
+            # Associer l'utilisateur connecté comme créateur
             if request.user.is_authenticated:
-                # Chercher l'agent par email ou créer un agent basique
-                try:
-                    agent = Agent.objects.get(email=request.user.email)
-                except Agent.DoesNotExist:
-                    # Créer automatiquement un agent pour cet utilisateur
-                    agent = Agent.objects.create(
-                        nom_complet=request.user.get_full_name() or request.user.username,
-                        matricule=f"USR-{request.user.id}",
-                        fonction="Agent",
-                        email=request.user.email,
-                        telephone="+228 00 00 00 00",  # Téléphone par défaut
-                        actif=True
-                    )
-                quitus.agent = agent
+                quitus.created_by = request.user
             
             # Générer le code de vérification avant la sauvegarde
             if not quitus.code_verification:
@@ -294,10 +279,8 @@ def creer_quitus(request):
                     messages.error(request, f"{field}: {error}")
     else:
         form = QuitusForm()
-        # Rendre le champ agent optionnel
-        form.fields['agent'].required = False
     
-    # L'utilisateur connecté sera toujours utilisé comme agent
+    # L'utilisateur connecté sera automatiquement utilisé comme créateur
     user_has_agent = request.user.is_authenticated
     
     return render(request, 'quitus_app/form.html', {
@@ -375,7 +358,7 @@ def verifier_quitus(request, code_verification):
                 'date_emission': quitus.date_emission.strftime('%d/%m/%Y'),
                 'date_validite': quitus.date_validite.strftime('%d/%m/%Y'),
                 'statut': 'VALIDE' if quitus.date_validite >= today else 'EXPIRE',
-                'agent': str(quitus.agent)
+                'created_by': quitus.created_by.get_full_name() if quitus.created_by else ''
             }, content_type='application/json')
         
         # Par défaut, afficher la page HTML
@@ -419,7 +402,7 @@ def verification_page(request):
 def detail_quitus(request, numero_quitus):
     """Afficher le détail d'un quitus avec aperçu et lien de téléchargement"""
     try:
-        quitus = Quitus.objects.select_related('agent').get(numero_quitus=numero_quitus)
+        quitus = Quitus.objects.select_related('created_by').get(numero_quitus=numero_quitus)
         
         # Enregistrer la consultation via AuditLogger
         AuditLogger.log_action(
@@ -446,7 +429,12 @@ def detail_quitus(request, numero_quitus):
 def liste_quitus(request):
     """Lister tous les quitus avec pagination"""
     # Récupérer la liste triée
-    quitus_all = Quitus.objects.select_related('agent').order_by('-date_emission')
+    quitus_all = Quitus.objects.select_related('created_by').order_by('-date_emission')
+    
+    # Filtrer par utilisateur si c'est un agent (pas chef/admin)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Les agents voient uniquement leurs propres quitus
+        quitus_all = quitus_all.filter(created_by=request.user)
     
     # Calculer les statistiques
     total = quitus_all.count()
@@ -488,7 +476,12 @@ def recherche_quitus(request):
             date_to = form.cleaned_data.get('date_to')
             
             # Commencer avec tous les quitus
-            results = Quitus.objects.select_related('agent').all()
+            results = Quitus.objects.select_related('created_by').all()
+            
+            # Filtrer par utilisateur si c'est un agent (pas chef/admin)
+            if not (request.user.is_staff or request.user.is_superuser):
+                # Les agents voient uniquement leurs propres quitus
+                results = results.filter(created_by=request.user)
             
             # Filtrer par recherche textuelle
             if query:
@@ -529,7 +522,7 @@ def recherche_quitus(request):
 def verification(request, code_verification):
     """Page de vérification complète sans redirection"""
     try:
-        quitus = Quitus.objects.select_related('agent').get(code_verification=code_verification)
+        quitus = Quitus.objects.select_related('created_by').get(code_verification=code_verification)
         
         # Enregistrer la vérification
         HistoriqueQuitus.objects.create(
@@ -562,7 +555,12 @@ def export_quitus_csv(request):
     date_to = request.GET.get('date_to', '')
     
     # Commencer avec tous les quitus
-    quitus_list = Quitus.objects.select_related('agent').all()
+    quitus_list = Quitus.objects.select_related('created_by').all()
+    
+    # Filtrer par utilisateur si c'est un agent (pas chef/admin)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Les agents voient uniquement leurs propres quitus
+        quitus_list = quitus_list.filter(created_by=request.user)
     
     # Appliquer les mêmes filtres que la recherche
     if query:
@@ -653,7 +651,7 @@ def export_quitus_csv(request):
             quitus.date_emission.strftime('%d/%m/%Y') if quitus.date_emission else '',
             quitus.date_validite.strftime('%d/%m/%Y') if quitus.date_validite else '',
             'Valide' if quitus.est_valide else ('Expiré' if quitus.date_validite < datetime.now().date() else 'Annulé'),
-            quitus.agent.nom_complet if quitus.agent else ''
+            quitus.created_by.get_full_name() if quitus.created_by else ''
         ])
     
     return response
@@ -732,11 +730,7 @@ def dashboard_users(request):
             role_badge = 'info'
         
         # Compter les quitus créés par cet utilisateur
-        try:
-            agent = Agent.objects.get(email=user.email)
-            quitus_count = Quitus.objects.filter(agent=agent).count()
-        except Agent.DoesNotExist:
-            quitus_count = 0
+        quitus_count = Quitus.objects.filter(created_by=user).count()
         
         users_data.append({
             'user': user,
@@ -932,7 +926,12 @@ def export_quitus_excel(request):
     from datetime import datetime
     
     # Récupérer les quitus (avec même logique que liste_quitus)
-    quitus_list = Quitus.objects.select_related('agent').all().order_by('-date_creation')
+    quitus_list = Quitus.objects.select_related('created_by').all().order_by('-date_creation')
+    
+    # Filtrer par utilisateur si c'est un agent (pas chef/admin)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Les agents voient uniquement leurs propres quitus
+        quitus_list = quitus_list.filter(created_by=request.user)
     
     # Appliquer les filtres si présents
     search_query = request.GET.get('search', '').strip()
@@ -981,7 +980,7 @@ def export_quitus_excel(request):
         ws.cell(row=row_num, column=4, value=quitus.nif_beneficiaire)
         ws.cell(row=row_num, column=5, value=quitus.telephone_beneficiaire or '')
         ws.cell(row=row_num, column=6, value=quitus.email_beneficiaire or '')
-        ws.cell(row=row_num, column=7, value=quitus.agent.nom_complet if quitus.agent else '')
+        ws.cell(row=row_num, column=7, value=quitus.created_by.get_full_name() if quitus.created_by else '')
         ws.cell(row=row_num, column=8, value=quitus.statut)
         ws.cell(row=row_num, column=9, value=quitus.date_validite.strftime('%d/%m/%Y') if quitus.date_validite else '')
     
@@ -1140,41 +1139,42 @@ def dashboard_stats(request):
     
     if days > 0:
         date_from = datetime.now() - timedelta(days=days)
-        quitus_filter = Q(date_creation__gte=date_from)
+        quitus_filter = Q(quitus_crees__date_creation__gte=date_from)
     else:
         quitus_filter = Q()  # Tous les quitus
     
-    # Statistiques par agent
-    agents_stats = Agent.objects.annotate(
-        total_quitus=Count('quitus', filter=quitus_filter),
-        actifs=Count('quitus', filter=quitus_filter & Q(quitus__statut='ACTIF')),
-        expires=Count('quitus', filter=quitus_filter & Q(quitus__statut='EXPIRÉ')),
-        annules=Count('quitus', filter=quitus_filter & Q(quitus__statut='ANNULÉ'))
-    ).order_by('-total_quitus')
+    # Statistiques par créateur (utilisateur)
+    from django.contrib.auth.models import User
+    users_stats = User.objects.annotate(
+        total_quitus=Count('quitus_crees', filter=quitus_filter),
+        actifs=Count('quitus_crees', filter=quitus_filter & Q(quitus_crees__statut='ACTIF')),
+        expires=Count('quitus_crees', filter=quitus_filter & Q(quitus_crees__statut='EXPIRÉ')),
+        annules=Count('quitus_crees', filter=quitus_filter & Q(quitus_crees__statut='ANNULÉ'))
+    ).filter(total_quitus__gt=0).order_by('-total_quitus')
     
-    # Filtrer uniquement les agents actifs ou tous
+    # Filtrer uniquement les utilisateurs actifs ou tous
     show_inactive = request.GET.get('show_inactive', '') == 'true'
     if not show_inactive:
-        agents_stats = agents_stats.filter(actif=True)
+        users_stats = users_stats.filter(is_active=True)
     
     # Statistiques globales
-    total_agents = agents_stats.count()
-    total_quitus = sum(agent.total_quitus for agent in agents_stats)
-    avg_per_agent = total_quitus / total_agents if total_agents > 0 else 0
+    total_users = users_stats.count()
+    total_quitus = sum(user.total_quitus for user in users_stats)
+    avg_per_user = total_quitus / total_users if total_users > 0 else 0
     
-    most_productive = agents_stats.first()
-    least_productive = agents_stats.filter(total_quitus__gt=0).last()
+    most_productive = users_stats.first()
+    least_productive = users_stats.filter(total_quitus__gt=0).last()
     
-    # Récupérer le dernier quitus pour chaque agent
-    for agent in agents_stats:
-        last_quitus = Quitus.objects.filter(agent=agent).order_by('-date_creation').first()
-        agent.last_quitus_date = last_quitus.date_creation if last_quitus else None
+    # Récupérer le dernier quitus pour chaque utilisateur
+    for user in users_stats:
+        last_quitus = Quitus.objects.filter(created_by=user).order_by('-date_creation').first()
+        user.last_quitus_date = last_quitus.date_creation if last_quitus else None
     
     context = {
-        'agents_stats': agents_stats,
-        'total_agents': total_agents,
+        'agents_stats': users_stats,  # Keeping same template variable name for compatibility
+        'total_agents': total_users,
         'total_quitus': total_quitus,
-        'avg_per_agent': round(avg_per_agent, 2),
+        'avg_per_agent': round(avg_per_user, 2),
         'most_productive': most_productive,
         'least_productive': least_productive,
         'period': period,
@@ -1202,6 +1202,11 @@ def notifications_dashboard(request):
     
     # Récupérer toutes les notifications
     notifications = HistoriqueNotifications.objects.select_related('quitus').all().order_by('-created_at')
+    
+    # Filtrer par utilisateur si c'est un agent (pas chef/admin)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Les agents voient uniquement les notifications de leurs quitus
+        notifications = notifications.filter(quitus__created_by=request.user)
     
     # Filtres
     status_filter = request.GET.get('status', '').strip()
@@ -1375,21 +1380,17 @@ def expiry_monitor(request):
     seven_days_later = today + timedelta(days=7)
     
     # Récupérer tous les quitus actifs
-    quitus_list = Quitus.objects.filter(statut='ACTIF').select_related('agent').order_by('date_validite')
+    quitus_list = Quitus.objects.filter(statut='ACTIF').select_related('created_by').order_by('date_validite')
     
-    # Filtrer par agent si spécifié
+    # Filtrer par créateur si spécifié
     agent_filter = request.GET.get('agent', '').strip()
     if agent_filter:
-        quitus_list = quitus_list.filter(agent__id=agent_filter)
+        quitus_list = quitus_list.filter(created_by__id=agent_filter)
     
     # Restreindre aux quitus de l'agent connecté si pas staff
     if not (request.user.is_staff or request.user.is_superuser):
-        # Trouver l'agent correspondant à l'utilisateur
-        try:
-            agent = Agent.objects.get(email=request.user.email)
-            quitus_list = quitus_list.filter(agent=agent)
-        except Agent.DoesNotExist:
-            quitus_list = Quitus.objects.none()
+        # Filtrer par l'utilisateur connecté (agent uniquement)
+        quitus_list = quitus_list.filter(created_by=request.user)
     
     # Filtre par statut d'expiration
     status_filter = request.GET.get('status', '').strip()
@@ -1469,15 +1470,16 @@ def expiry_monitor(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
-    # Liste des agents pour le filtre (si admin/chef)
-    agents_list = None
+    # Liste des utilisateurs pour le filtre (si admin/chef)
+    users_list = None
     if request.user.is_staff or request.user.is_superuser:
-        agents_list = Agent.objects.filter(actif=True).order_by('nom_complet')
+        # Pour les admins/chefs, on peut filtrer par créateur
+        users_list = User.objects.filter(is_active=True).order_by('last_name', 'first_name')
     
     context = {
         'quitus_list': page_obj,
         'stats': stats,
-        'agents_list': agents_list,
+        'users_list': users_list,
         'agent_filter': agent_filter,
         'status_filter': status_filter,
         'paginator': paginator,
@@ -1506,17 +1508,13 @@ def send_expiry_notification(request, quitus_id):
         
         # Vérifier les permissions (agents ne peuvent notifier que leurs quitus)
         if not (request.user.is_staff or request.user.is_superuser):
-            try:
-                agent = Agent.objects.get(email=request.user.email)
-                if quitus.agent != agent:
-                    messages.error(request, "Vous n'avez pas la permission de notifier ce quitus.")
-                    return redirect('expiry_monitor')
-            except Agent.DoesNotExist:
-                messages.error(request, "Agent non trouvé.")
+            # Vérifier que l'utilisateur est le créateur du quitus
+            if quitus.created_by != request.user:
+                messages.error(request, "Vous n'avez pas la permission de notifier ce quitus.")
                 return redirect('expiry_monitor')
         
         # Déterminer l'email du destinataire
-        recipient_email = quitus.email or (quitus.agent.email if quitus.agent else None)
+        recipient_email = quitus.email or (quitus.created_by.email if quitus.created_by else None)
         
         if not recipient_email:
             messages.error(request, "Aucun email disponible pour ce quitus.")
@@ -1570,7 +1568,7 @@ def send_all_expiry_notifications(request):
         statut='ACTIF',
         date_validite__lte=seven_days_later,
         date_validite__gte=today
-    ).select_related('agent')
+    ).select_related('created_by')
     
     sent_count = 0
     failed_count = 0
@@ -1587,7 +1585,7 @@ def send_all_expiry_notifications(request):
             continue
         
         # Déterminer l'email
-        recipient_email = quitus.email or (quitus.agent.email if quitus.agent else None)
+        recipient_email = quitus.email or (quitus.created_by.email if quitus.created_by else None)
         
         if not recipient_email:
             failed_count += 1
@@ -1642,14 +1640,9 @@ def edit_quitus(request, quitus_id):
     
     # Vérifier les permissions (agents peuvent éditer seulement leurs quitus)
     if not (request.user.is_staff or request.user.is_superuser):
-        try:
-            agent = Agent.objects.get(email=request.user.email)
-            if quitus.agent != agent:
-                messages.error(request, "Vous n'avez pas la permission d'éditer ce quitus.")
-                return redirect('detail_quitus', numero_quitus=quitus.numero_quitus)
-        except Agent.DoesNotExist:
-            messages.error(request, "Agent non trouvé.")
-            return redirect('liste_quitus')
+        if quitus.created_by != request.user:
+            messages.error(request, "Vous n'avez pas la permission d'éditer ce quitus.")
+            return redirect('detail_quitus', numero_quitus=quitus.numero_quitus)
     
     if request.method == 'POST':
         # Récupérer les données du formulaire

@@ -1,27 +1,52 @@
 from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import uuid
 
-class Agent(models.Model):
-    """Modèle pour les agents du Port"""
-    nom_complet = models.CharField(max_length=200, verbose_name="Nom complet")
+
+class UserProfile(models.Model):
+    """Profil utilisateur étendu pour les informations métier"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     matricule = models.CharField(max_length=50, unique=True, verbose_name="Matricule")
-    fonction = models.CharField(max_length=100, verbose_name="Fonction")
-    email = models.EmailField(verbose_name="Email")
-    telephone = models.CharField(max_length=20, verbose_name="Téléphone")
+    fonction = models.CharField(max_length=100, default="Agent", verbose_name="Fonction")
+    telephone = models.CharField(max_length=20, default="+228 00 00 00 00", verbose_name="Téléphone")
     actif = models.BooleanField(default=True, verbose_name="Actif")
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'agents'
-        verbose_name = 'Agent'
-        verbose_name_plural = 'Agents'
-        ordering = ['nom_complet']
+        db_table = 'user_profiles'
+        verbose_name = 'Profil Utilisateur'
+        verbose_name_plural = 'Profils Utilisateurs'
+        ordering = ['user__last_name', 'user__first_name']
     
     def __str__(self):
-        return f"{self.nom_complet} - {self.fonction}"
+        return f"{self.user.get_full_name() or self.user.username} - {self.fonction}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Créer automatiquement un profil quand un utilisateur est créé"""
+    if created:
+        UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={
+                'matricule': f'USR-{instance.id}',
+                'fonction': 'Agent',
+                'telephone': '+228 00 00 00 00',
+                'actif': True
+            }
+        )
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Sauvegarder le profil quand l'utilisateur est sauvegardé"""
+    if hasattr(instance, 'profile'):
+        instance.profile.save()
 
 
 class Quitus(models.Model):
@@ -80,11 +105,14 @@ class Quitus(models.Model):
         verbose_name="Code de vérification"
     )
     
-    # Agent responsable
-    agent = models.ForeignKey(
-        Agent, 
-        on_delete=models.PROTECT, 
-        verbose_name="Agent responsable"
+    # Utilisateur créateur
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name="Créé par",
+        related_name='quitus_crees',
+        null=True,
+        blank=True
     )
     
     # Fichier PDF généré

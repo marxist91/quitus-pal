@@ -3,7 +3,7 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
-from .models import Quitus, Agent
+from .models import Quitus, UserProfile
 
 class QuitusForm(forms.ModelForm):
     """Formulaire pour la génération de quitus"""
@@ -143,21 +143,12 @@ class QuitusForm(forms.ModelForm):
         })
     )
     
-    agent = forms.ModelChoiceField(
-        label="Agent Responsable",
-        queryset=Agent.objects.filter(actif=True),
-        widget=forms.Select(attrs={
-            'class': 'form-select'
-        }),
-        help_text="Sélectionnez l'agent qui valide ce quitus"
-    )
-    
     class Meta:
         model = Quitus
         fields = [
             'numero_quitus', 'date_validite', 'nom_prenoms', 'raison_sociale',
             'cni', 'nationalite', 'activite', 'compte_pal', 'nif',
-            'telephone', 'email', 'situation_geo', 'adresse_postale', 'agent'
+            'telephone', 'email', 'situation_geo', 'adresse_postale'
         ]
     
     def clean_numero_quitus(self):
@@ -487,6 +478,8 @@ class UserRoleForm(forms.Form):
     
     def save(self):
         """Créer l'utilisateur avec le rôle approprié"""
+        from django.contrib.auth.models import Group
+        
         # Définir le mot de passe par défaut si aucun n'est fourni
         password = self.cleaned_data.get('password1') or 'TogoPort2024@'
         
@@ -507,21 +500,20 @@ class UserRoleForm(forms.Form):
             user.is_staff = True
         elif role == 'chef':
             user.is_staff = True
-            # Ajouter permissions spécifiques chef
-            from django.contrib.auth.models import Permission
-            permissions = Permission.objects.filter(
-                codename__in=['view_quitus', 'add_quitus', 'change_quitus', 'delete_quitus',
-                             'view_historiquequitus', 'view_agent']
-            )
-            user.user_permissions.set(permissions)
+            # Ajouter au groupe Chef_Directeur
+            try:
+                chef_group = Group.objects.get(name='Chef_Directeur')
+                user.groups.add(chef_group)
+            except Group.DoesNotExist:
+                pass
         else:  # agent
             user.is_staff = False
-            # Permissions basiques agent
-            from django.contrib.auth.models import Permission
-            permissions = Permission.objects.filter(
-                codename__in=['view_quitus', 'add_quitus', 'view_historiquequitus']
-            )
-            user.user_permissions.set(permissions)
+            # Ajouter au groupe Agent
+            try:
+                agent_group = Group.objects.get(name='Agent')
+                user.groups.add(agent_group)
+            except Group.DoesNotExist:
+                pass
         
         user.save()
         return user
@@ -567,8 +559,13 @@ class UserEditForm(forms.ModelForm):
                 self.fields['role'].initial = 'agent'
     
     def save(self, commit=True):
+        from django.contrib.auth.models import Group
+        
         user = super().save(commit=False)
         role = self.cleaned_data['role']
+        
+        # Retirer l'utilisateur de tous les groupes existants
+        user.groups.clear()
         
         # Mettre à jour les permissions
         if role == 'admin':
@@ -577,20 +574,21 @@ class UserEditForm(forms.ModelForm):
         elif role == 'chef':
             user.is_superuser = False
             user.is_staff = True
-            from django.contrib.auth.models import Permission
-            permissions = Permission.objects.filter(
-                codename__in=['view_quitus', 'add_quitus', 'change_quitus', 'delete_quitus',
-                             'view_historiquequitus', 'view_agent']
-            )
-            user.user_permissions.set(permissions)
+            # Ajouter au groupe Chef_Directeur
+            try:
+                chef_group = Group.objects.get(name='Chef_Directeur')
+                user.groups.add(chef_group)
+            except Group.DoesNotExist:
+                pass
         else:  # agent
             user.is_superuser = False
             user.is_staff = False
-            from django.contrib.auth.models import Permission
-            permissions = Permission.objects.filter(
-                codename__in=['view_quitus', 'add_quitus', 'view_historiquequitus']
-            )
-            user.user_permissions.set(permissions)
+            # Ajouter au groupe Agent
+            try:
+                agent_group = Group.objects.get(name='Agent')
+                user.groups.add(agent_group)
+            except Group.DoesNotExist:
+                pass
         
         if commit:
             user.save()

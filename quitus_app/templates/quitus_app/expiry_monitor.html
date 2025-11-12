@@ -120,12 +120,12 @@
             <form method="GET" class="row g-3">
                 {% if not is_restricted %}
                 <div class="col-md-4">
-                    <label for="agent" class="form-label">Agent</label>
+                    <label for="agent" class="form-label">Créateur</label>
                     <select name="agent" id="agent" class="form-select">
-                        <option value="">Tous les agents</option>
-                        {% for agent in agents_list %}
-                        <option value="{{ agent.id }}" {% if agent_filter == agent.id|stringformat:"s" %}selected{% endif %}>
-                            {{ agent.nom_complet }}
+                        <option value="">Tous les utilisateurs</option>
+                        {% for user in users_list %}
+                        <option value="{{ user.id }}" {% if agent_filter == user.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user.get_full_name|default:user.username }}
                         </option>
                         {% endfor %}
                     </select>
@@ -197,7 +197,7 @@
                                     <br><small class="text-muted"><i class="fas fa-envelope"></i> {{ item.quitus.email }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ item.quitus.agent.nom_complet|default:"N/A" }}</td>
+                            <td>{{ item.quitus.created_by.get_full_name|default:item.quitus.created_by.username|default:"N/A" }}</td>
                             <td>{{ item.quitus.date_validite|date:"d/m/Y" }}</td>
                             <td>
                                 {% if item.days_until_expiry < 0 %}

@@ -6,7 +6,7 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 import logging
 
 from .models import HistoriqueNotifications, Quitus
@@ -72,7 +72,7 @@ class NotificationManager:
             
             if success:
                 notification.status = 'SENT'
-                notification.sent_at = datetime.now(timezone.utc)
+                notification.sent_at = datetime.now()
                 logger.info(f"[OK] Email d'expiration envoye a {recipient_email} pour {quitus.numero_quitus}")
             else:
                 notification.status = 'FAILED'
@@ -145,7 +145,7 @@ class NotificationManager:
             
             if success:
                 notification.status = 'SENT'
-                notification.sent_at = datetime.now(timezone.utc)
+                notification.sent_at = datetime.now()
                 logger.info(f"[OK] Notification #{notification.id} renvoyee avec succes")
                 retry_count += 1
             else:
@@ -183,7 +183,7 @@ class NotificationChecker:
         expiring_quitus = Quitus.objects.filter(
             date_validite=target_date,
             statut='ACTIF'  # Le modèle utilise ACTIF pour les quitus valides
-        ).select_related('agent')
+        ).select_related('created_by')
         
         checked = expiring_quitus.count()
         notified = 0
@@ -205,7 +205,7 @@ class NotificationChecker:
                     continue
                 
                 # Determiner destinataire
-                recipient_email = quitus.email or (quitus.agent.email if quitus.agent else None)
+                recipient_email = quitus.email or (quitus.created_by.email if quitus.created_by else None)
                 
                 if not recipient_email:
                     logger.warning(f"[WARN] Pas d'email pour {quitus.numero_quitus}")

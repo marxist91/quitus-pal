@@ -45,7 +45,7 @@
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title"><i class="fas fa-trophy"></i> Plus Productif</h5>
-                    <h3>{{ most_productive.nom_complet|default:"N/A" }}</h3>
+                    <h3>{{ most_productive.get_full_name|default:most_productive.username|default:"N/A" }}</h3>
                     <small>{{ most_productive.total_quitus|default:0 }} quitus</small>
                 </div>
             </div>
@@ -120,16 +120,16 @@
                     </thead>
                     <tbody>
                         {% for agent in agents_stats %}
-                        <tr {% if not agent.actif %}class="table-secondary"{% endif %}>
+                        <tr {% if not agent.is_active %}class="table-secondary"{% endif %}>
                             <td>{{ forloop.counter }}</td>
                             <td>
-                                <strong>{{ agent.nom_complet }}</strong>
-                                {% if not agent.actif %}
+                                <strong>{{ agent.get_full_name|default:agent.username }}</strong>
+                                {% if not agent.is_active %}
                                     <span class="badge bg-secondary ms-2">Inactif</span>
                                 {% endif %}
                             </td>
-                            <td>{{ agent.fonction }}</td>
-                            <td><code>{{ agent.matricule }}</code></td>
+                            <td>{{ agent.userprofile.fonction|default:"N/A" }}</td>
+                            <td><code>{{ agent.userprofile.matricule|default:"N/A" }}</code></td>
                             <td class="text-center">
                                 <span class="badge bg-primary rounded-pill fs-6">
                                     {{ agent.total_quitus }}
@@ -152,7 +152,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-center">
-                                {% if agent.actif %}
+                                {% if agent.is_active %}
                                     <span class="badge bg-success">
                                         <i class="fas fa-check-circle"></i> Actif
                                     </span>
@@ -183,11 +183,11 @@
         <div class="col-md-6">
             <div class="card border-success">
                 <div class="card-header bg-success text-white">
-                    <i class="fas fa-star"></i> Agent le Plus Productif
+                    <i class="fas fa-star"></i> Utilisateur le Plus Productif
                 </div>
                 <div class="card-body">
-                    <h5>{{ most_productive.nom_complet }}</h5>
-                    <p class="mb-1"><strong>Fonction:</strong> {{ most_productive.fonction }}</p>
+                    <h5>{{ most_productive.get_full_name|default:most_productive.username }}</h5>
+                    <p class="mb-1"><strong>Fonction:</strong> {{ most_productive.userprofile.fonction|default:"N/A" }}</p>
                     <p class="mb-1"><strong>Total Quitus:</strong> 
                         <span class="badge bg-success fs-6">{{ most_productive.total_quitus }}</span>
                     </p>
@@ -202,11 +202,11 @@
         <div class="col-md-6">
             <div class="card border-info">
                 <div class="card-header bg-info text-white">
-                    <i class="fas fa-info-circle"></i> Agent le Moins Productif
+                    <i class="fas fa-info-circle"></i> Utilisateur le Moins Productif
                 </div>
                 <div class="card-body">
-                    <h5>{{ least_productive.nom_complet }}</h5>
-                    <p class="mb-1"><strong>Fonction:</strong> {{ least_productive.fonction }}</p>
+                    <h5>{{ least_productive.get_full_name|default:least_productive.username }}</h5>
+                    <p class="mb-1"><strong>Fonction:</strong> {{ least_productive.userprofile.fonction|default:"N/A" }}</p>
                     <p class="mb-1"><strong>Total Quitus:</strong> 
                         <span class="badge bg-info fs-6">{{ least_productive.total_quitus }}</span>
                     </p>

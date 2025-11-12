@@ -342,7 +342,16 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Agent Responsable :</span>
-                <span class="info-value">{{ quitus.agent.nom_complet }} ({{ quitus.agent.fonction }})</span>
+                <span class="info-value">
+                    {% if quitus.created_by %}
+                        {{ quitus.created_by.get_full_name|default:quitus.created_by.username }}
+                        {% if quitus.created_by.userprofile.fonction %}
+                            ({{ quitus.created_by.userprofile.fonction }})
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
             </div>
             <div class="info-row">
                 <span class="info-label">Code de Vérification :</span>

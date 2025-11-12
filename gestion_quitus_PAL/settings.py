@@ -2,12 +2,16 @@
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-change-me-in-production'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# Charger les variables d'environnement depuis le fichier .env
+load_dotenv(BASE_DIR / '.env')
+
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-in-production')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -160,17 +164,21 @@ os.makedirs(logs_dir, exist_ok=True)
 # ============================================================================
 
 # Backend email (console pour développement, SMTP pour production)
-if DEBUG:
+# Utiliser FORCE_EMAIL_SMTP=True dans .env pour forcer SMTP même en DEBUG
+FORCE_EMAIL_SMTP = os.getenv('FORCE_EMAIL_SMTP', 'False') == 'True'
+
+if DEBUG and not FORCE_EMAIL_SMTP:
     # En développement: affiche les emails dans la console
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # En production: utilise SMTP
+    # En production ou si FORCE_EMAIL_SMTP: utilise SMTP
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Configuration SMTP (à personnaliser selon votre serveur)
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Serveur SMTP
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))          # Port SMTP (587 pour TLS)
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'  # Utiliser TLS
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))          # Port SMTP (587 pour TLS, 465 pour SSL)
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'  # Utiliser TLS (port 587)
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'  # Utiliser SSL (port 465)
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')      # Votre email
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')  # Mot de passe
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@togoport.tg')

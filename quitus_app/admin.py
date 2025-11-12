@@ -1,22 +1,25 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Agent, Quitus, HistoriqueQuitus
+from .models import UserProfile, Quitus, HistoriqueQuitus
 
 
-@admin.register(Agent)
-class AgentAdmin(admin.ModelAdmin):
-    list_display = ['nom_complet', 'matricule', 'fonction', 'email', 'actif', 'date_creation']
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'matricule', 'fonction', 'telephone', 'actif', 'date_creation']
     list_filter = ['actif', 'fonction', 'date_creation']
-    search_fields = ['nom_complet', 'matricule', 'email']
-    ordering = ['nom_complet']
+    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name', 'matricule']
+    ordering = ['user__last_name', 'user__first_name']
     
     fieldsets = (
-        ('Informations personnelles', {
-            'fields': ('nom_complet', 'matricule', 'fonction')
+        ('Utilisateur', {
+            'fields': ('user',)
+        }),
+        ('Informations professionnelles', {
+            'fields': ('matricule', 'fonction')
         }),
         ('Contact', {
-            'fields': ('email', 'telephone')
+            'fields': ('telephone',)
         }),
         ('Statut', {
             'fields': ('actif',)
@@ -43,11 +46,11 @@ class QuitusAdmin(admin.ModelAdmin):
         'nom_prenoms',
         'date_validite',
         'statut_badge',
-        'agent',
+        'created_by',
         'date_creation',
         'actions_links'
     ]
-    list_filter = ['statut', 'date_creation', 'date_validite', 'agent']
+    list_filter = ['statut', 'date_creation', 'date_validite', 'created_by']
     search_fields = [
         'numero_quitus',
         'nom_prenoms',
@@ -81,8 +84,8 @@ class QuitusAdmin(admin.ModelAdmin):
             'fields': ('code_verification', 'qr_code', 'qr_code_image'),
             'classes': ('collapse',)
         }),
-        ('Agent et fichiers', {
-            'fields': ('agent', 'pdf_file')
+        ('Créateur et fichiers', {
+            'fields': ('created_by', 'pdf_file')
         }),
         ('Métadonnées', {
             'fields': ('ip_creation', 'date_creation', 'date_modification'),

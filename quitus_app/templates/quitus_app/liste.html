@@ -168,7 +168,7 @@
                                 <span class="badge bg-warning badge-custom"><i class="fas fa-clock"></i> Expiré</span>
                             {% endif %}
                         </td>
-                        <td><small>{{ quitus.agent.nom_complet }}</small></td>
+                        <td><small>{{ quitus.created_by.get_full_name|default:quitus.created_by.username|default:"N/A" }}</small></td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{% url 'verifier_quitus' quitus.code_verification %}" class="btn btn-sm btn-info btn-action" title="Voir détails">

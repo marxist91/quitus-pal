@@ -9,8 +9,10 @@ from django.core.cache import cache
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.http import HttpResponseForbidden
+from django.conf import settings
 from .audit import AuditLogger
 import logging
+import os
 
 logger = logging.getLogger('quitus_security')
 
@@ -19,11 +21,18 @@ LOGIN_ATTEMPTS_LIMIT = 5  # Max 5 tentatives
 LOGIN_ATTEMPTS_WINDOW = 15 * 60  # Fenêtre de 15 minutes
 SUSPICIOUS_REQUEST_LIMIT = 20  # Max 20 requêtes suspectes
 
+# Désactiver le rate limiting en développement si DISABLE_RATE_LIMIT=True dans .env
+DISABLE_RATE_LIMIT = os.getenv('DISABLE_RATE_LIMIT', 'False') == 'True'
+
 
 class RateLimitMiddleware(MiddlewareMixin):
     """Middleware pour le rate limiting"""
     
     def process_request(self, request):
+        # Si DISABLE_RATE_LIMIT=True, ne pas appliquer la limitation
+        if DISABLE_RATE_LIMIT:
+            return None
+            
         # Vérifier le rate limiting sur la page de login
         if request.path == '/login/':
             client_ip = self.get_client_ip(request)

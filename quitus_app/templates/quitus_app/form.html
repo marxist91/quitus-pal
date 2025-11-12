@@ -607,36 +607,16 @@
 
                 <!-- Section: Agent -->
                 {% if not user_has_agent %}
-                <div class="form-section">
-                    <div class="section-header">
-                        <h5><i class="fas fa-user-shield"></i> AGENT RESPONSABLE</h5>
-                        <span class="section-badge">Validation</span>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            {{ form.agent.label }}
-                            {% if form.agent.field.required %}<span class="required-star">*</span>{% endif %}
-                        </label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-user-check input-icon"></i>
-                            {{ form.agent }}
-                        </div>
-                        {% for err in form.agent.errors %}
-                            <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ err }}</div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% else %}
-                <!-- Agent associé automatiquement -->
+                <!-- Créateur associé automatiquement -->
                 <div class="info-box" style="background: #d4edda; border-left-color: #28a745;">
                     <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <strong>Agent responsable :</strong> 
+                    <strong>Créateur du quitus :</strong> 
                     {% if user.get_full_name %}
                         {{ user.get_full_name }} ({{ user.username }})
                     {% else %}
                         {{ user.username }}
                     {% endif %}
-                    - Automatiquement assigné comme agent validateur de ce quitus.
+                    - Automatiquement enregistré comme créateur de ce quitus.
                 </div>
                 {% endif %}
 
