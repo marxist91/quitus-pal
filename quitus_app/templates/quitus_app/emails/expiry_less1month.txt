@@ -1,0 +1,8 @@
+Bonjour {{ recipient_name }},
+
+Attention : votre quitus {{ quitus.numero_quitus }} expirera le {{ expiry_date }}, soit dans {{ days_remaining }} jour(s).
+
+Veuillez renouveler sans délai pour éviter tout désagrément.
+
+Cordialement,
+Port Autonome de Lomé

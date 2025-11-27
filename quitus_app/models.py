@@ -267,3 +267,26 @@ class HistoriqueNotifications(models.Model):
         """Nombre de jours depuis la création"""
         from datetime import datetime, timezone
         return (datetime.now(timezone.utc) - self.created_at).days
+
+
+
+class RenumberBatch(models.Model):
+    """Batch de renumérotation sauvegardé pour prévisualisation, export et annulation."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=50)
+    params = models.JSONField(blank=True, null=True)
+    changes = models.JSONField(blank=True, null=True)  # liste d'objets {id, old, new}
+    created_by = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    applied = models.BooleanField(default=False)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    applied_by = models.CharField(max_length=200, blank=True, null=True)
+    result = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'renumber_batch'
+        verbose_name = 'Renumber Batch'
+        verbose_name_plural = 'Renumber Batches'
+
+    def __str__(self):
+        return f"Batch {self.id} - {self.action} - applied={self.applied}"

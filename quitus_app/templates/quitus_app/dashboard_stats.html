@@ -45,8 +45,8 @@
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title"><i class="fas fa-trophy"></i> Plus Productif</h5>
-                    <h3>{{ most_productive.get_full_name|default:most_productive.username|default:"N/A" }}</h3>
-                    <small>{{ most_productive.total_quitus|default:0 }} quitus</small>
+                    <h3>{% if most_productive %}{{ most_productive.get_full_name|default:most_productive.username }}{% else %}N/A{% endif %}</h3>
+                    <small>{% if most_productive %}{{ most_productive.total_quitus }}{% else %}0{% endif %} quitus</small>
                 </div>
             </div>
         </div>
@@ -186,15 +186,13 @@
                     <i class="fas fa-star"></i> Utilisateur le Plus Productif
                 </div>
                 <div class="card-body">
-                    <h5>{{ most_productive.get_full_name|default:most_productive.username }}</h5>
-                    <p class="mb-1"><strong>Fonction:</strong> {{ most_productive.userprofile.fonction|default:"N/A" }}</p>
-                    <p class="mb-1"><strong>Total Quitus:</strong> 
-                        <span class="badge bg-success fs-6">{{ most_productive.total_quitus }}</span>
+                    <h5>{% if most_productive %}{{ most_productive.get_full_name|default:most_productive.username }}{% else %}N/A{% endif %}</h5>
+                    <p class="mb-1"><strong>Fonction:</strong> {% if most_productive %}{{ most_productive.userprofile.fonction|default:"N/A" }}{% else %}N/A{% endif %}</p>
+                    <p class="mb-1"><strong>Total Quitus:</strong>
+                        <span class="badge bg-success fs-6">{% if most_productive %}{{ most_productive.total_quitus }}{% else %}0{% endif %}</span>
                     </p>
-                    <p class="mb-0"><strong>Répartition:</strong> 
-                        {{ most_productive.actifs }} actif(s), 
-                        {{ most_productive.expires }} expiré(s), 
-                        {{ most_productive.annules }} annulé(s)
+                    <p class="mb-0"><strong>Répartition:</strong>
+                        {% if most_productive %}{{ most_productive.actifs }} actif(s), {{ most_productive.expires }} expiré(s), {{ most_productive.annules }} annulé(s){% else %}0 actif(s), 0 expiré(s), 0 annulé(s){% endif %}
                     </p>
                 </div>
             </div>

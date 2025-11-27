@@ -1,0 +1,94 @@
+{% extends 'quitus_app/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Outil d'administration: régénérer / renommer numéros de quitus</h3>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="confirm" id="confirm_input" value="0">
+                <div class="mb-3">
+                    {{ form.quitus_ids.label_tag }}
+                    {{ form.quitus_ids }}
+                    {% if form.quitus_ids.help_text %}
+                        <small class="form-text text-muted">{{ form.quitus_ids.help_text }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        {{ form.action.label_tag }}
+                        {{ form.action }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form.new_prefix.label_tag }}
+                        {{ form.new_prefix }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form.start_number.label_tag }}
+                        {{ form.start_number }}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="execute_btn">Exécuter</button>
+                <a href="{% url 'index' %}" class="btn btn-secondary ms-2">Annuler</a>
+            </form>
+        </div>
+    </div>
+
+    {% if result %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5>Résultats</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>ID</th><th>Ancien</th><th>Nouveau</th></tr>
+                </thead>
+                <tbody>
+                {% for r in result %}
+                    <tr><td>{{ r.id }}</td><td>{{ r.old }}</td><td>{{ r.new }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div class="mt-3">
+                {% if batch_id %}
+                    <a href="{% url 'admin_regenerate_export_csv' %}?batch_id={{ batch_id }}" class="btn btn-secondary">Exporter CSV</a>
+                    <form method="post" action="{% url 'admin_regenerate_undo' batch_id=batch_id %}" class="d-inline ms-2">
+                        {% csrf_token %}
+                        <button class="btn btn-danger" onclick="return confirm('Confirmer l\'annulation du batch {{ batch_id }} ?');">Annuler le batch</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+    <script>
+        // Confirmation client avant soumission
+        (function(){
+            const form = document.querySelector('form');
+            const textarea = document.querySelector('textarea[name="quitus_ids"]');
+            const actionSelect = document.querySelector('select[name="action"]');
+            const confirmInput = document.getElementById('confirm_input');
+
+            if(!form) return;
+
+            form.addEventListener('submit', function(e){
+                // compter les tokens entrés
+                const raw = textarea ? textarea.value.trim() : '';
+                const tokens = raw ? raw.split(/[\n,;\s]+/).filter(Boolean) : [];
+                const actionLabel = actionSelect ? actionSelect.options[actionSelect.selectedIndex].text : 'Action';
+                const message = `Vous vous apprêtez à exécuter : ${actionLabel}\nNombre d'éléments : ${tokens.length}\n\nConfirmez-vous ?`;
+                if(!confirm(message)){
+                    e.preventDefault();
+                    return false;
+                }
+                // marquer la confirmation pour la vérification serveur
+                confirmInput.value = '1';
+                return true;
+            });
+        })();
+    </script>
+{% endblock %}

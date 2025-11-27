@@ -63,7 +63,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'quitus_pal',
         'USER': 'root',
-        'PASSWORD': 'root',  # Change avec ton mot de passe
+        'PASSWORD': '',  # Change avec ton mot de passe
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -199,3 +199,19 @@ if 'test' in sys.argv:
             'NAME': BASE_DIR / 'test_db.sqlite3',  # fichier persistant (plutôt que :memory: pour migrations)
         }
     }
+"""  
+# ============================================================================
+# PATCH pour MariaDB 10.4 (XAMPP) – IGNORER LE CHECK DE VERSION
+# ============================================================================
+if DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
+    try:
+        from django.db.backends.mysql.base import DatabaseWrapper
+        DatabaseWrapper.check_database_version_supported = lambda self, **kwargs: None
+    except:
+        pass  # En cas d'import impossible
+
+# Forcer le mode SQL compatible avec MariaDB 10.4
+if 'OPTIONS' not in DATABASES['default']:
+    DATABASES['default']['OPTIONS'] = {}
+DATABASES['default']['OPTIONS']['init_command'] = "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'"
+"""
