@@ -12,17 +12,22 @@ from io import BytesIO, StringIO
 import csv
 import qrcode
 from datetime import datetime
-from .forms import QuitusForm, SearchQuitusForm, LoginForm, UserRegistrationForm
-from .models import Quitus, HistoriqueQuitus, HistoriqueNotifications, UserProfile
+from .forms import QuitusForm, SearchQuitusForm, LoginForm, UserRegistrationForm, AdminRenumberForm
+from .models import Quitus, HistoriqueQuitus, HistoriqueNotifications, UserProfile, RenumberBatch
 from django.db.models import Q, Count
 from .pdf_generator import generate_quitus_pdf
 from .audit import AuditLogger
 from .notifications import NotificationManager
+from django.views.decorators.http import require_GET
+import re
+import json
+import uuid
 
 
 def index(request):
     """Vue d'accueil - Page de base avec navigation"""
     from datetime import date, timedelta
+    from dateutil.relativedelta import relativedelta
     
     # Récupérer les statistiques
     today = date.today()
@@ -212,12 +217,402 @@ def history_log(request):
 
 
 
+@admin_required
+@require_http_methods(["GET", "POST"])
+def admin_regenerate_numeros(request):
+    """Outil d'administration pour régénérer ou renommer des numéros de quitus.
+
+    Sécurisé aux administrateurs de service (décorateur `admin_required`).
+    - GET: affiche le formulaire
+    - POST: effectue l'action choisie et affiche le résultat
+    """
+    form = AdminRenumberForm(request.POST or None)
+    result = []
+
+    # If this is a confirmation POST that only includes the batch_id (user clicked "Apply" on preview),
+    # apply the persisted RenumberBatch without requiring the full form to be re-submitted.
+    if request.method == 'POST' and request.POST.get('confirm') == '1' and request.POST.get('batch_id'):
+        batch_id_post = request.POST.get('batch_id')
+        batch = RenumberBatch.objects.filter(id=batch_id_post).first()
+        if not batch:
+            messages.error(request, "Batch introuvable pour application.")
+            return render(request, 'quitus_app/admin_regen_numbers.html', {'form': form, 'result': result})
+
+        # If already applied, nothing to do
+        if batch.applied:
+            messages.info(request, f"Le batch {batch.id} a déjà été appliqué.")
+            return render(request, 'quitus_app/admin_regen_numbers.html', {'form': form, 'result': result})
+
+        apply_changes = batch.changes or []
+        changes_applied = []
+        for entry in apply_changes:
+            cid = entry.get('id')
+            oldv = entry.get('old')
+            newv = entry.get('new')
+            q_obj = Quitus.objects.filter(id=cid).first()
+            if not q_obj:
+                continue
+            q_obj.numero_quitus = newv
+            q_obj.save()
+            changes_applied.append((cid, oldv, newv))
+
+            try:
+                HistoriqueQuitus.objects.create(
+                    quitus=q_obj,
+                    action='MODIFICATION',
+                    utilisateur=request.user.username if request.user.is_authenticated else 'system',
+                    ip_address=get_client_ip(request),
+                    details=json.dumps({'batch_id': str(batch.id), 'old': oldv, 'new': newv}, ensure_ascii=False)
+                )
+            except Exception:
+                pass
+
+        # Mark batch as applied and save results
+        batch.applied = True
+        batch.applied_by = request.user.username if request.user.is_authenticated else 'system'
+        batch.applied_at = datetime.now()
+        batch.result = [{'id': c[0], 'old': c[1], 'new': c[2]} for c in changes_applied]
+        batch.save()
+
+        for cid, oldv, newv in changes_applied:
+            result.append({'id': cid, 'old': oldv, 'new': newv})
+
+        if result:
+            messages.success(request, f"{len(result)} quitus mis à jour.")
+        else:
+            messages.info(request, "Aucun changement effectué.")
+
+        return render(request, 'quitus_app/admin_regen_numbers.html', {
+            'form': form,
+            'result': result
+        })
+
+    if request.method == 'POST' and form.is_valid():
+        ids_raw = form.cleaned_data['quitus_ids']
+        action = form.cleaned_data['action']
+        new_prefix = form.cleaned_data.get('new_prefix') or ''
+        start_number = form.cleaned_data.get('start_number')
+
+        # Parse IDs (supporte virgules, espaces, nouvelles lignes) et nettoyer les espaces insécables
+        raw_parts = [s.replace('\xa0', ' ') for s in re.split(r'[\n,;]+', ids_raw)]
+        candidates = []
+        for part in raw_parts:
+            # split further on whitespace and commas
+            for token in re.split(r'[\s,;]+', part):
+                tok = token.strip()
+                if tok:
+                    # nettoyer NBSP et guillemets invisibles
+                    tok = tok.replace('\u00A0', '').replace('\xa0', '')
+                    candidates.append(tok)
+
+        uuid_re = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+        uuid_ids = [c for c in candidates if uuid_re.match(c)]
+        numero_ids = [c for c in candidates if not uuid_re.match(c)]
+
+        # Construire queryset en acceptant soit des UUID (id) soit des numero_quitus
+        q_filter = Q()
+        if uuid_ids:
+            q_filter |= Q(id__in=uuid_ids)
+        if numero_ids:
+            # normaliser les numéros (suppression espaces & majuscules)
+            numero_norm = [n.strip().upper() for n in numero_ids]
+            q_filter |= Q(numero_quitus__in=numero_norm)
+
+        qs = Quitus.objects.filter(q_filter) if q_filter else Quitus.objects.none()
+
+        if not qs.exists():
+            messages.error(request, "Aucun quitus trouvé pour les IDs fournis.")
+            return render(request, 'quitus_app/admin_regen_numbers.html', {'form': form, 'result': result})
+
+        # --- Construire la liste de changements proposés (preview) sans appliquer ---
+        proposed_changes = []
+
+        if action == 'regenerate':
+            # Group by year and compute next available numbers excluding selected
+            by_year = {}
+            for q in qs:
+                year = q.date_creation.year if getattr(q, 'date_creation', None) else datetime.now().year
+                by_year.setdefault(year, []).append(q)
+
+            for year, items in by_year.items():
+                prefix_year = f"PAL-{year}-"
+                selected_ids = list(qs.values_list('id', flat=True))
+                # Compute the current max suffix across ALL quitus for this prefix
+                all_with_prefix = Quitus.objects.filter(numero_quitus__startswith=prefix_year)
+                max_num = 0
+                for o in all_with_prefix:
+                    try:
+                        suffix = o.numero_quitus.split('-')[-1]
+                        n = int(suffix)
+                        if n > max_num:
+                            max_num = n
+                    except Exception:
+                        continue
+
+                next_num = max_num + 1
+                for item in sorted(items, key=lambda x: getattr(x, 'date_creation', datetime.now())):
+                    new_num = f"{prefix_year}{next_num:03d}"
+                    # avoid collisions
+                    while Quitus.objects.filter(numero_quitus=new_num).exclude(id=item.id).exists():
+                        next_num += 1
+                        new_num = f"{prefix_year}{next_num:03d}"
+                    proposed_changes.append({'id': str(item.id), 'old': item.numero_quitus, 'new': new_num})
+                    next_num += 1
+
+        elif action == 'rename_prefix':
+            prefix = new_prefix.strip()
+            if not prefix:
+                messages.error(request, "Le nouveau préfixe est requis pour l'action de renommage.")
+                return render(request, 'quitus_app/admin_regen_numbers.html', {'form': form, 'result': result})
+            if not prefix.endswith('-'):
+                prefix = prefix + '-'
+
+            if start_number:
+                next_num = int(start_number)
+            else:
+                selected_ids = list(qs.values_list('id', flat=True))
+                # Compute max across all quitus that already use this prefix so new numbers follow the current max
+                all_with_prefix = Quitus.objects.filter(numero_quitus__startswith=prefix)
+                max_num = 0
+                for o in all_with_prefix:
+                    try:
+                        suffix = o.numero_quitus.split('-')[-1]
+                        n = int(suffix)
+                        if n > max_num:
+                            max_num = n
+                    except Exception:
+                        continue
+                next_num = max_num + 1
+
+            for item in sorted(qs, key=lambda x: getattr(x, 'date_creation', datetime.now())):
+                new_num = f"{prefix}{next_num:03d}"
+                while Quitus.objects.filter(numero_quitus=new_num).exclude(id=item.id).exists():
+                    next_num += 1
+                    new_num = f"{prefix}{next_num:03d}"
+                proposed_changes.append({'id': str(item.id), 'old': item.numero_quitus, 'new': new_num})
+                next_num += 1
+
+        # If the user didn't confirm yet, show preview page and store proposal in session
+        confirmed = request.POST.get('confirm') == '1'
+        batch_id = str(uuid.uuid4())
+        if not confirmed:
+            # Persist preview in DB for multi-user auditing and later export/undo
+            batch = RenumberBatch.objects.create(
+                action=action,
+                params={'new_prefix': new_prefix, 'start_number': start_number},
+                changes=proposed_changes,
+                created_by=request.user.username if request.user.is_authenticated else 'system',
+            )
+            return render(request, 'quitus_app/admin_regen_preview.html', {
+                'form': form,
+                'preview': batch,
+            })
+
+        # Confirmed -> apply changes stored in session if available
+        # Load persisted batch if provided
+        batch_id_post = request.POST.get('batch_id')
+        apply_changes = proposed_changes
+        batch = None
+        if batch_id_post:
+            try:
+                batch = RenumberBatch.objects.filter(id=batch_id_post).first()
+                if batch and batch.changes:
+                    apply_changes = batch.changes
+            except Exception:
+                batch = None
+        if batch:
+            batch.applied = True
+            batch.applied_by = request.user.username if request.user.is_authenticated else 'system'
+            batch.applied_at = datetime.now()
+            # we'll fill result after applying
+            batch.save()
+
+        changes_applied = []
+        for entry in apply_changes:
+            cid = entry['id']
+            oldv = entry['old']
+            newv = entry['new']
+            q_obj = Quitus.objects.filter(id=cid).first()
+            if not q_obj:
+                continue
+            q_obj.numero_quitus = newv
+            q_obj.save()
+            changes_applied.append((cid, oldv, newv))
+
+            # enregistrer l'historique détaillé (JSON dans details)
+            try:
+                HistoriqueQuitus.objects.create(
+                    quitus=q_obj,
+                    action='MODIFICATION',
+                    utilisateur=request.user.username if request.user.is_authenticated else 'system',
+                    ip_address=get_client_ip(request),
+                    details=json.dumps({'batch_id': batch_id, 'old': oldv, 'new': newv}, ensure_ascii=False)
+                )
+            except Exception:
+                pass
+
+        # Save result into batch if present
+        if batch:
+            batch.result = result
+            batch.save()
+
+        # Build result for display
+        for cid, oldv, newv in changes_applied:
+            result.append({'id': cid, 'old': oldv, 'new': newv})
+
+        if result:
+            messages.success(request, f"{len(result)} quitus mis à jour.")
+        else:
+            messages.info(request, "Aucun changement effectué.")
+
+    return render(request, 'quitus_app/admin_regen_numbers.html', {
+        'form': form,
+        'result': result
+    })
+
+
+@admin_required
+@require_GET
+def admin_regenerate_export_csv(request):
+    """Exporter la preview ou le dernier résultat stocké en session en CSV."""
+    preview = request.session.get('admin_renumber_preview')
+    result = request.session.get('admin_renumber_result')
+
+    rows = []
+    if preview:
+        rows = preview.get('changes', [])
+        batch = preview.get('batch_id')
+    elif result:
+        rows = result
+        batch = None
+    else:
+        messages.error(request, "Aucune donnée à exporter.")
+        return redirect('admin_regenerate_numeros')
+
+    import csv
+    from django.utils.encoding import smart_str
+    response = HttpResponse(content_type='text/csv')
+    fname = f"renumber_changes_{batch or 'result'}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    writer = csv.writer(response)
+    writer.writerow(['id', 'old', 'new'])
+    for r in rows:
+        writer.writerow([smart_str(r.get('id')), smart_str(r.get('old')), smart_str(r.get('new'))])
+    return response
+
+
+@admin_required
+@require_http_methods(["POST"])
+def admin_regenerate_undo(request, batch_id):
+    """Annuler une opération précédente identifiée par `batch_id`.
+
+    Cette vue recherche dans `HistoriqueQuitus.details` les enregistrements JSON contenant le batch_id
+    et restaure les anciens numéros. Elle crée aussi des entrées d'historique pour l'annulation.
+    """
+    # Rechercher les historiques correspondants
+    entries = HistoriqueQuitus.objects.filter(details__contains=batch_id)
+    if not entries.exists():
+        messages.error(request, "Aucun historique trouvé pour ce batch_id.")
+        return redirect('admin_regenerate_numeros')
+
+    changes_done = []
+    for e in entries:
+        try:
+            payload = json.loads(e.details)
+            old = payload.get('old')
+            new = payload.get('new')
+            q = e.quitus
+            if q and q.numero_quitus == new:
+                q.numero_quitus = old
+                q.save()
+                changes_done.append((str(q.id), new, old))
+                # journaliser l'annulation
+                HistoriqueQuitus.objects.create(
+                    quitus=q,
+                    action='MODIFICATION',
+                    utilisateur=request.user.username if request.user.is_authenticated else 'system',
+                    ip_address=get_client_ip(request),
+                    details=json.dumps({'batch_id': batch_id, 'undo': True, 'restored_from': new, 'restored_to': old}, ensure_ascii=False)
+                )
+        except Exception:
+            continue
+
+    if changes_done:
+        messages.success(request, f"{len(changes_done)} quitus restaurés depuis le batch {batch_id}.")
+    else:
+        messages.info(request, "Aucun changement effectué lors de l'annulation.")
+
+    return redirect('admin_regenerate_numeros')
+
+
+@admin_required
+@require_GET
+def admin_list_batches(request):
+    """Lister tous les RenumberBatch pour supervision."""
+    batches = RenumberBatch.objects.all().order_by('-created_at')
+    return render(request, 'quitus_app/admin_renumber_batches.html', {
+        'batches': batches
+    })
+
+
+@admin_required
+@require_GET
+def admin_preview_batch(request, batch_id):
+    """Afficher une prévisualisation persistée pour un batch donné."""
+    batch = RenumberBatch.objects.filter(id=batch_id).first()
+    if not batch:
+        messages.error(request, "Batch introuvable.")
+        return redirect('admin_regenerate_numeros')
+    return render(request, 'quitus_app/admin_regen_preview.html', {
+        'form': AdminRenumberForm(),
+        'preview': batch,
+    })
+
+
+
 
 @agent_required
 def creer_quitus(request):
     """Vue pour créer un nouveau quitus"""
+    # Calculer numéro automatique (PAL-<année>-<num>)
+    from datetime import date
+    current_year = date.today().year
+    prefix = f"PAL-{current_year}-"
+
+    def _next_numero():
+        qs = Quitus.objects.filter(numero_quitus__startswith=prefix)
+        max_num = 0
+        for q in qs:
+            try:
+                suffix = q.numero_quitus.split('-')[-1]
+                n = int(suffix)
+                if n > max_num:
+                    max_num = n
+            except Exception:
+                continue
+        return f"{prefix}{(max_num + 1):03d}"
+
+    default_numero = _next_numero()
+    default_date_validite = date(current_year, 12, 31)
+
     if request.method == 'POST':
-        form = QuitusForm(request.POST)
+        # Uppercase compte_pal for consistent format
+        post = request.POST.copy()
+        if 'compte_pal' in post:
+            post['compte_pal'] = post['compte_pal'].strip().upper()
+
+        # If date_validite is not provided in the POST, set it to the default (31/12/current_year)
+        if not post.get('date_validite'):
+            try:
+                post['date_validite'] = default_date_validite.isoformat()
+            except Exception:
+                pass
+
+        form = QuitusForm(post)
+        # Validate compte_pal server-side
+        compte = post.get('compte_pal', '').strip().upper()
+        if compte and not re.match(r'^C\d{6}$', compte):
+            form.add_error('compte_pal', 'Format du compte PAL invalide (ex: C123456).')
         
         if form.is_valid():
             # Créer le quitus
@@ -232,6 +627,13 @@ def creer_quitus(request):
             if not quitus.code_verification:
                 quitus.code_verification = quitus.generer_code_verification()
             
+            # Si numero_quitus vide ou laissé par l'utilisateur, générer
+            if not quitus.numero_quitus:
+                quitus.numero_quitus = default_numero
+            # Si date_validite non fournie, définir au 31/12 de l'année en cours
+            if not quitus.date_validite:
+                quitus.date_validite = default_date_validite
+
             quitus.save()
             
             # Générer le QR code
@@ -278,15 +680,48 @@ def creer_quitus(request):
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
     else:
-        form = QuitusForm()
+        # Pré-remplir numero et date_validite
+        form = QuitusForm(initial={
+            'numero_quitus': default_numero,
+            'date_validite': default_date_validite,
+        })
     
     # L'utilisateur connecté sera automatiquement utilisé comme créateur
     user_has_agent = request.user.is_authenticated
     
     return render(request, 'quitus_app/form.html', {
         'form': form,
-        'user_has_agent': user_has_agent
+        'user_has_agent': user_has_agent,
+        'default_date_validite': default_date_validite,
     })
+
+
+@require_GET
+def client_by_compte(request):
+    """Endpoint AJAX: retourne les infos client à partir du compte PAL (si trouvé)
+    Recherche la dernière entrée Quitus correspondant au `compte_pal` fourni.
+    """
+    compte = request.GET.get('compte', '').strip().upper()
+    if not compte:
+        return JsonResponse({'found': False})
+
+    # Chercher dans quitus existants
+    q = Quitus.objects.filter(compte_pal__iexact=compte).order_by('-date_creation').first()
+    if not q:
+        return JsonResponse({'found': False})
+
+    data = {
+        'found': True,
+        'nom_prenoms': q.nom_prenoms,
+        'raison_sociale': q.raison_sociale,
+        'cni': q.cni,
+        'nif': q.nif,
+        'telephone': q.telephone,
+        'email': q.email,
+        'situation_geo': q.situation_geo,
+        'adresse_postale': q.adresse_postale,
+    }
+    return JsonResponse(data)
 
 
 def telecharger_quitus(request, numero_quitus):
@@ -1145,7 +1580,7 @@ def dashboard_stats(request):
     
     # Statistiques par créateur (utilisateur)
     from django.contrib.auth.models import User
-    users_stats = User.objects.annotate(
+    users_stats = User.objects.select_related('profile').annotate(
         total_quitus=Count('quitus_crees', filter=quitus_filter),
         actifs=Count('quitus_crees', filter=quitus_filter & Q(quitus_crees__statut='ACTIF')),
         expires=Count('quitus_crees', filter=quitus_filter & Q(quitus_crees__statut='EXPIRÉ')),
@@ -1162,8 +1597,8 @@ def dashboard_stats(request):
     total_quitus = sum(user.total_quitus for user in users_stats)
     avg_per_user = total_quitus / total_users if total_users > 0 else 0
     
-    most_productive = users_stats.first()
-    least_productive = users_stats.filter(total_quitus__gt=0).last()
+    most_productive = users_stats.first() if users_stats.exists() else None
+    least_productive = users_stats.filter(total_quitus__gt=0).last() if users_stats.exists() else None
     
     # Récupérer le dernier quitus pour chaque utilisateur
     for user in users_stats:
@@ -1375,12 +1810,19 @@ def expiry_monitor(request):
     - Rouge : Expiré ou expire aujourd'hui
     """
     from datetime import date, timedelta
-    
+    from dateutil.relativedelta import relativedelta
+
     today = date.today()
-    seven_days_later = today + timedelta(days=7)
-    
-    # Récupérer tous les quitus actifs
-    quitus_list = Quitus.objects.filter(statut='ACTIF').select_related('created_by').order_by('date_validite')
+
+    # We'll use month-based thresholds instead of 7 days.
+    # Definitions:
+    # - safe (green): more than 4 months remaining
+    # - warning (yellow): between 1 and 4 months remaining (inclusive)
+    # - critical (red): 1 month or less remaining (or expired)
+    # For notification batch we consider the next ~4 months window.
+
+    # Récupérer tous les quitus non annulés (inclut ACTIF et EXPIRE)
+    quitus_list = Quitus.objects.exclude(statut='ANNULE').select_related('created_by').order_by('date_validite')
     
     # Filtrer par créateur si spécifié
     agent_filter = request.GET.get('agent', '').strip()
@@ -1406,28 +1848,45 @@ def expiry_monitor(request):
     
     for quitus in quitus_list:
         days_until_expiry = (quitus.date_validite - today).days
-        
-        # Déterminer la catégorie et la couleur
+
+        # Compute exact months remaining using relativedelta
         if days_until_expiry < 0:
+            # already expired
             category = 'expired'
             color = 'red'
             status_text = f"Expiré depuis {abs(days_until_expiry)} jour(s)"
             urgency = 'critical'
-        elif days_until_expiry == 0:
-            category = 'today'
-            color = 'red'
-            status_text = "Expire aujourd'hui"
-            urgency = 'critical'
-        elif days_until_expiry <= 7:
-            category = 'warning'
-            color = 'yellow'
-            status_text = f"Expire dans {days_until_expiry} jour(s)"
-            urgency = 'warning'
         else:
-            category = 'safe'
-            color = 'green'
-            status_text = f"Expire dans {days_until_expiry} jour(s)"
-            urgency = 'safe'
+            rd = relativedelta(quitus.date_validite, today)
+            # full months between today and validity (ignore leftover days)
+            total_months = rd.years * 12 + rd.months
+
+            # Decide display mode:
+            # - if total_months == 0 -> show days
+            # - if 1 <= total_months <= 4 -> show months (warning)
+            # - if total_months > 4 -> safe (months)
+            months_effective = total_months
+
+            if total_months == 0:
+                # less than one month remaining -> show days
+                category = 'today'
+                color = 'red'
+                status_text = f"Expire dans {days_until_expiry} jour(s)"
+                urgency = 'critical'
+                months_effective = 0
+                is_months = False
+            elif 1 <= total_months <= 4:
+                category = 'warning'
+                color = 'yellow'
+                status_text = f"Expire dans {months_effective} mois(s)"
+                urgency = 'warning'
+                is_months = True
+            else:
+                category = 'safe'
+                color = 'green'
+                status_text = f"Expire dans {months_effective} mois(s)"
+                urgency = 'safe'
+                is_months = True
         
         # Vérifier si notification déjà envoyée
         notification_sent = HistoriqueNotifications.objects.filter(
@@ -1439,6 +1898,8 @@ def expiry_monitor(request):
         quitus_data = {
             'quitus': quitus,
             'days_until_expiry': days_until_expiry,
+            'months_effective': months_effective if 'months_effective' in locals() else 0,
+            'is_months': locals().get('is_months', False),
             'category': category,
             'color': color,
             'status_text': status_text,
@@ -1559,14 +2020,16 @@ def send_all_expiry_notifications(request):
     """
     from datetime import date, timedelta
     from .notifications import NotificationManager
-    
+    from dateutil.relativedelta import relativedelta
+
     today = date.today()
-    seven_days_later = today + timedelta(days=7)
-    
-    # Récupérer les quitus expirant dans les 7 jours
+    # use relativedelta to get an exact 4-month window
+    four_months_later = today + relativedelta(months=4)
+
+    # Récupérer les quitus expirant dans les 4 prochains mois (inclus)
     expiring_quitus = Quitus.objects.filter(
         statut='ACTIF',
-        date_validite__lte=seven_days_later,
+        date_validite__lte=four_months_later,
         date_validite__gte=today
     ).select_related('created_by')
     

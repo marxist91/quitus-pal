@@ -225,6 +225,27 @@ python manage.py test --verbosity 2
 # Résultat : 29 tests, 100% pass (3 skipped)
 ```
 
+### Problème de discovery sur `manage.py test`
+
+Sur certaines configurations (notamment si un dossier `tests` existe directement sous une app), la discovery globale de `unittest` peut lever une erreur :
+
+```
+ImportError: 'tests' module incorrectly imported from '.../quitus_app/tests'. Expected '.../quitus_app'.
+```
+
+Solution recommandée (non intrusive) : utiliser le script utilitaire qui exécute les tests par application et recherche aussi les fichiers `test*.py` hors des packages :
+
+```powershell
+python scripts\run_tests_each_app.py
+```
+
+Ce script :
+- exécute `manage.py test <app>.tests` pour chaque app listée dans `INSTALLED_APPS` (si un package `tests` existe),
+- puis recherche et exécute les fichiers `test*.py` en dehors des packages d'app (via `python -m unittest <file>`).
+
+Utilisez ce script dans votre environnement de développement Windows pour lancer l'ensemble des tests sans modifier la structure des tests existante.
+
+
 ### Couverture des Tests
 
 | Module | Tests | Statut |
