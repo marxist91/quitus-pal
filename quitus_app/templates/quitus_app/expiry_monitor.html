@@ -26,7 +26,7 @@
                         <i class="fas fa-check-circle"></i> Sûr (Vert)
                     </h5>
                     <h2 class="text-success">{{ stats.green }}</h2>
-                    <small class="text-muted">Plus de 7 jours restants</small>
+                    <small class="text-muted">Plus de 4 mois restants</small>
                 </div>
             </div>
         </div>
@@ -37,7 +37,7 @@
                         <i class="fas fa-exclamation-triangle"></i> Attention (Jaune)
                     </h5>
                     <h2 class="text-warning">{{ stats.yellow }}</h2>
-                    <small class="text-muted">1 à 7 jours restants</small>
+                    <small class="text-muted">1 à 4 mois restants</small>
                 </div>
             </div>
         </div>
@@ -48,7 +48,7 @@
                         <i class="fas fa-times-circle"></i> Critique (Rouge)
                     </h5>
                     <h2 class="text-danger">{{ stats.red }}</h2>
-                    <small class="text-muted">Expiré ou expire aujourd'hui</small>
+                    <small class="text-muted">Expiré ou ≤ 1 mois restant</small>
                 </div>
             </div>
         </div>
@@ -74,28 +74,28 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="color-box bg-success me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
+                            <div class="color-box bg-success me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
                         <div>
                             <strong>Vert (Sûr)</strong><br>
-                            <small>Plus de 7 jours avant expiration</small>
+                            <small>Plus de 4 mois avant expiration</small>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="color-box bg-warning me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
+                            <div class="color-box bg-warning me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
                         <div>
                             <strong>Jaune (Attention)</strong><br>
-                            <small>1 à 7 jours avant expiration</small>
+                            <small>1 à 4 mois avant expiration</small>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex align-items-center mb-2">
-                        <div class="color-box bg-danger me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
+                            <div class="color-box bg-danger me-2" style="width: 30px; height: 30px; border-radius: 5px;"></div>
                         <div>
                             <strong>Rouge (Critique)</strong><br>
-                            <small>Expiré ou expire aujourd'hui</small>
+                            <small>Expiré ou ≤ 1 mois avant expiration</small>
                         </div>
                     </div>
                 </div>
@@ -107,13 +107,15 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
             <h5 class="mb-0"><i class="fas fa-filter"></i> Filtres</h5>
-            {% if not is_restricted and stats.yellow > 0 or stats.red > 0 %}
-            <form method="POST" action="{% url 'send_all_expiry_notifications' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Envoyer des notifications pour tous les quitus expirant dans les 7 jours ?')">
-                    <i class="fas fa-paper-plane"></i> Envoyer Toutes les Notifications
-                </button>
-            </form>
+            {% if not is_restricted %}
+                {% if stats.yellow > 0 or stats.red > 0 %}
+                    <form method="POST" action="{% url 'send_all_expiry_notifications' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Envoyer des notifications pour tous les quitus expirant dans les 4 prochains mois ?')">
+                            <i class="fas fa-paper-plane"></i> Envoyer Toutes les Notifications
+                        </button>
+                    </form>
+                {% endif %}
             {% endif %}
         </div>
         <div class="card-body">
@@ -200,14 +202,25 @@
                             <td>{{ item.quitus.created_by.get_full_name|default:item.quitus.created_by.username|default:"N/A" }}</td>
                             <td>{{ item.quitus.date_validite|date:"d/m/Y" }}</td>
                             <td>
-                                {% if item.days_until_expiry < 0 %}
-                                    <span class="badge bg-danger">{{ item.days_until_expiry }} jours</span>
-                                {% elif item.days_until_expiry == 0 %}
-                                    <span class="badge bg-danger">Aujourd'hui</span>
-                                {% elif item.days_until_expiry <= 7 %}
-                                    <span class="badge bg-warning text-dark">{{ item.days_until_expiry }} jours</span>
+                                {% if item.is_months %}
+                                    {# Afficher en mois quand la logique de la vue le demande #}
+                                    {% if item.color == 'red' %}
+                                        <span class="badge bg-danger">{{ item.months_effective }} mois</span>
+                                    {% elif item.color == 'yellow' %}
+                                        <span class="badge bg-warning text-dark">{{ item.months_effective }} mois</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ item.months_effective }} mois</span>
+                                    {% endif %}
                                 {% else %}
-                                    <span class="badge bg-success">{{ item.days_until_expiry }} jours</span>
+                                    {% if item.days_until_expiry < 0 %}
+                                        <span class="badge bg-danger">{{ item.days_until_expiry }} jours</span>
+                                    {% elif item.days_until_expiry == 0 %}
+                                        <span class="badge bg-danger">Aujourd'hui</span>
+                                    {% elif item.days_until_expiry <= 7 %}
+                                        <span class="badge bg-warning text-dark">{{ item.days_until_expiry }} jours</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ item.days_until_expiry }} jours</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td>

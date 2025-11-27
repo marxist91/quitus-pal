@@ -2,7 +2,7 @@
 
 {% block title %}Accueil - Gestion des Quitus - Port Autonome de Lomé{% endblock %}
 
-{% block page_title %}Bienvenue dans la Gestion des Quitus{% endblock %}
+{% block page_title %}Bienvenue sur la plateforme de Gestion des Quitus{% endblock %}
 
 {% block extra_css %}
     <style>
@@ -279,6 +279,16 @@
             <p>Gérez et suivez toutes les notifications email envoyées aux bénéficiaires.</p>
             <a href="{% url 'notifications_dashboard' %}" class="btn btn-warning">
                 <i class="fas fa-envelope"></i> Voir Notifications
+            </a>
+        </div>
+        
+        <!-- Outil: Régénération / Renommage Numéros (admin/service) -->
+        <div class="feature-card">
+            <i class="fas fa-sync-alt"></i>
+            <h3>Régénérer / Renommer Numéros</h3>
+            <p>Outil d'administration pour renuméroter ou renommer les numéros de quitus sélectionnés.</p>
+            <a href="{% url 'admin_regenerate_numeros' %}" class="btn btn-secondary">
+                <i class="fas fa-random"></i> Outil numéros
             </a>
         </div>
         {% endif %}

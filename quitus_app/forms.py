@@ -27,7 +27,8 @@ class QuitusForm(forms.ModelForm):
         validators=[quitus_validator],
         widget=forms.TextInput(attrs={
             'placeholder': 'Ex: PAL-2025-001',
-            'class': 'form-control'
+            'class': 'form-control',
+            'readonly': 'readonly'
         }),
         help_text="Format: PAL-ANNÉE-NUMÉRO"
     )
@@ -93,7 +94,7 @@ class QuitusForm(forms.ModelForm):
         label="N° de Compte PAL",
         max_length=50,
         widget=forms.TextInput(attrs={
-            'placeholder': 'Ex: PAL-123456',
+            'placeholder': 'EX: C123456',
             'class': 'form-control'
         })
     )
@@ -150,6 +151,30 @@ class QuitusForm(forms.ModelForm):
             'cni', 'nationalite', 'activite', 'compte_pal', 'nif',
             'telephone', 'email', 'situation_geo', 'adresse_postale'
         ]
+
+    def __init__(self, *args, **kwargs):
+        """Initialiser le formulaire et définir une date_validite par défaut
+
+        Par défaut, si on crée un nouveau quitus (pas d'instance existante) et
+        aucune `date_validite` n'est fournie, on met le dernier jour de l'année
+        en cours (31/12/<année courante>).
+        """
+        super().__init__(*args, **kwargs)
+        # Ne pas écraser la date si on édite une instance existante
+        try:
+            from datetime import date
+            if not getattr(self.instance, 'pk', None):
+                if not self.initial.get('date_validite') and not self.data.get('date_validite'):
+                    current_year = date.today().year
+                    default_date = date(current_year, 12, 31)
+                    self.initial['date_validite'] = default_date
+                    # Ensure the widget includes the value attribute so browsers show the date
+                    try:
+                        self.fields['date_validite'].widget.attrs['value'] = default_date.isoformat()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
     
     def clean_numero_quitus(self):
         """Vérifier l'unicité du numéro de quitus"""
@@ -491,16 +516,15 @@ class UserRoleForm(forms.Form):
             last_name=self.cleaned_data['last_name'],
             is_active=self.cleaned_data.get('is_active', True)
         )
-        
-        role = self.cleaned_data['role']
-        
+        # Assigner le rôle et les groupes correspondants
+        role = self.cleaned_data.get('role')
         # Assigner les permissions selon le rôle
         if role == 'admin':
             user.is_superuser = True
             user.is_staff = True
         elif role == 'chef':
             user.is_staff = True
-            # Ajouter au groupe Chef_Directeur
+            # Ajouter au groupe Chef_Directeur si existant
             try:
                 chef_group = Group.objects.get(name='Chef_Directeur')
                 user.groups.add(chef_group)
@@ -508,15 +532,57 @@ class UserRoleForm(forms.Form):
                 pass
         else:  # agent
             user.is_staff = False
-            # Ajouter au groupe Agent
             try:
                 agent_group = Group.objects.get(name='Agent')
                 user.groups.add(agent_group)
             except Group.DoesNotExist:
                 pass
-        
+
         user.save()
         return user
+
+
+class AdminRenumberForm(forms.Form):
+    """Formulaire d'administration pour régénérer/renommer des numéros de quitus
+
+    - `quitus_ids`: liste d'IDs (UUID) ou identifiants séparés par virgule/nouveau-ligne
+    - `action`: 'regenerate' ou 'rename_prefix'
+    - `new_prefix`: préfixe (ex: PAL-2025) utilisé pour l'action 'rename_prefix'
+    - `start_number`: numéro de départ (optionnel)
+    """
+    quitus_ids = forms.CharField(
+        label="IDs Quitus",
+        widget=forms.Textarea(attrs={
+            'placeholder': 'Liste des IDs de quitus (séparés par virgule ou nouvelle ligne)\nEx: 3fa85f64-... , 2b7e1c4f-...',
+            'class': 'form-control',
+            'rows': 4
+        }),
+        help_text="Entrez les identifiants (UUID) des quitus à traiter."
+    )
+
+    ACTION_CHOICES = [
+        ('regenerate', "Régénérer automatiquement les numéros"),
+        ('rename_prefix', "Renommer le préfixe et renuméroter")
+    ]
+
+    action = forms.ChoiceField(
+        label="Action",
+        choices=ACTION_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    new_prefix = forms.CharField(
+        label="Nouveau préfixe (optionnel)",
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: PAL-2025'})
+    )
+
+    start_number = forms.IntegerField(
+        label="Numéro de départ (optionnel)",
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1})
+    )
 
 
 class UserEditForm(forms.ModelForm):

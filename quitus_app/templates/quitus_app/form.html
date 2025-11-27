@@ -361,11 +361,13 @@
                         <i class="fas fa-search"></i> Recherche
                     </a>
                 </li>
+                {% comment %} 
                 <li class="nav-item">
                     <a class="nav-link" href="/admin/">
                         <i class="fas fa-cogs"></i> Administration
                     </a>
                 </li>
+                 {% endcomment %}
             </ul>
         </div>
     </div>
@@ -431,7 +433,11 @@
                         </label>
                         <div class="input-with-icon">
                             <i class="far fa-calendar-check input-icon"></i>
-                            {{ form.date_validite }}
+                            {% comment %} Always render a concrete date input so browsers show the default value when the field is empty. Use the bound value if present, otherwise the provided default_date_validite. {% endcomment %}
+                            {% with dv=form.date_validite.value %}
+                                {% comment %} If dv is empty, the default_date_validite will be used and formatted to YYYY-MM-DD. {% endcomment %}
+                                <input type="date" name="{{ form.date_validite.html_name }}" id="{{ form.date_validite.id_for_label }}" class="form-control{% if form.date_validite.errors %} is-invalid{% endif %}" value="{{ dv|default:default_date_validite|date:"Y-m-d" }}">
+                            {% endwith %}
                         </div>
                         {% for err in form.date_validite.errors %}
                             <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ err }}</div>
@@ -449,6 +455,22 @@
                         <span class="section-badge">Informations personnelles</span>
                     </div>
                     <div class="row">
+                        <!-- Compte PAL (placé en haut pour recherche auto des infos client) -->
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">
+                                {{ form.compte_pal.label }}
+                                {% if form.compte_pal.field.required %}<span class="required-star">*</span>{% endif %}
+                            </label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-credit-card input-icon"></i>
+                                {{ form.compte_pal }}
+                            </div>
+                            <small class="form-text">Format attendu: C123456 (lettre C suivie de 6 chiffres)</small>
+                            {% for err in form.compte_pal.errors %}
+                                <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ err }}</div>
+                            {% endfor %}
+                        </div>
+
                         <div class="col-md-6 form-group">
                             <label class="form-label">
                                 {{ form.nom_prenoms.label }}
@@ -514,6 +536,7 @@
                                 <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ err }}</div>
                             {% endfor %}
                         </div>
+                        {% comment %} 
                         <div class="col-md-6 form-group">
                             <label class="form-label">
                                 {{ form.compte_pal.label }}
@@ -523,6 +546,7 @@
                                 <i class="fas fa-credit-card input-icon"></i>
                                 {{ form.compte_pal }}
                             </div>
+                             {% endcomment %}
                             {% for err in form.compte_pal.errors %}
                                 <div class="invalid-feedback"><i class="fas fa-exclamation-circle"></i> {{ err }}</div>
                             {% endfor %}
@@ -721,6 +745,71 @@
             }
         }
     });
+
+    // Validation et récupération automatique des infos client par compte PAL
+    const compteInput = document.querySelector('input[name="compte_pal"]');
+    if (compteInput) {
+        const compteRegex = /^C\d{6}$/i;
+        compteInput.addEventListener('blur', function(e) {
+            const val = (e.target.value || '').trim().toUpperCase();
+            e.target.value = val;
+
+            // Validate format
+            if (!compteRegex.test(val)) {
+                e.target.classList.add('is-invalid');
+                return;
+            } else {
+                e.target.classList.remove('is-invalid');
+            }
+
+            // Call API to fetch client info
+            fetch('{% url "client_by_compte" %}?compte=' + encodeURIComponent(val))
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.found) {
+                        // Fill fields if values exist
+                        if (data.nom_prenoms) {
+                            const el = document.querySelector('input[name="nom_prenoms"]');
+                            if (el && !el.value) el.value = data.nom_prenoms;
+                        }
+                        if (data.raison_sociale) {
+                            const el = document.querySelector('input[name="raison_sociale"]');
+                            if (el && !el.value) el.value = data.raison_sociale;
+                        }
+                        if (data.cni) {
+                            const el = document.querySelector('input[name="cni"]');
+                            if (el && !el.value) el.value = data.cni;
+                        }
+                        if (data.nif) {
+                            const el = document.querySelector('input[name="nif"]');
+                            if (el && !el.value) el.value = data.nif;
+                        }
+                        if (data.telephone) {
+                            const el = document.querySelector('input[name="telephone"]');
+                            if (el && !el.value) el.value = data.telephone;
+                        }
+                        if (data.email) {
+                            const el = document.querySelector('input[name="email"]');
+                            if (el && !el.value) el.value = data.email;
+                        }
+                        if (data.situation_geo) {
+                            const el = document.querySelector('input[name="situation_geo"]');
+                            if (el && !el.value) el.value = data.situation_geo;
+                        }
+                        if (data.adresse_postale) {
+                            const el = document.querySelector('input[name="adresse_postale"]');
+                            if (el && !el.value) el.value = data.adresse_postale;
+                        }
+                    } else {
+                        // No data found — optional: clear some fields
+                        // (we keep existing values to avoid losing user input)
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur récupération client:', err);
+                });
+        });
+    }
 </script>
 </body>
 </html>

@@ -1,0 +1,37 @@
+{% extends 'quitus_app/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Historique des Renumber Batches</h3>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>Batch ID</th><th>Action</th><th>Créé par</th><th>Created At</th><th>Applied</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                {% for b in batches %}
+                    <tr>
+                        <td>{{ b.id }}</td>
+                        <td>{{ b.action }}</td>
+                        <td>{{ b.created_by }}</td>
+                        <td>{{ b.created_at }}</td>
+                        <td>{{ b.applied }}</td>
+                        <td>
+                            <a href="{% url 'admin_preview_renumber_batch' b.id %}" class="btn btn-sm btn-primary">Voir</a>
+                            {% if b.applied %}
+                                <form method="post" action="{% url 'admin_regenerate_undo' b.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-danger" onclick="return confirm('Annuler le batch {{ b.id }} ?');">Annuler</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

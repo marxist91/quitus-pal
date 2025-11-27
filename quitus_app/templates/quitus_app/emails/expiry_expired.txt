@@ -1,0 +1,8 @@
+Bonjour {{ recipient_name }},
+
+Le quitus {{ quitus.numero_quitus }} a expiré le {{ expiry_date }}.
+
+Contactez le service compétent pour toute régularisation.
+
+Cordialement,
+Port Autonome de Lomé
