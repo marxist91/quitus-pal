@@ -1,0 +1,11 @@
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+  <p>Bonjour {{ recipient_name }},</p>
+  <p>Ceci est un rappel : votre quitus <strong>{{ quitus.numero_quitus }}</strong> arrivera à expiration le <strong>{{ expiry_date }}</strong>, soit dans <strong>{{ months_effective }} mois</strong>{% if days_remaining is not none %} (<strong>{{ days_remaining }} jour(s)</strong>){% endif %}.</p>
+  <p>Merci de prendre les dispositions nécessaires pour renouveler votre quitus avant la date d'expiration.</p>
+  <p>Cordialement,<br/>Port Autonome de Lomé</p>
+</body>
+</html>

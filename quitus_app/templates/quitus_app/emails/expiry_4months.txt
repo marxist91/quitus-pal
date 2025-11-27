@@ -1,0 +1,8 @@
+Bonjour {{ recipient_name }},
+
+Ceci est un rappel : votre quitus {{ quitus.numero_quitus }} arrivera à expiration le {{ expiry_date }}, soit dans {{ months_effective }} mois{% if days_remaining is not none %} ({{ days_remaining }} jour(s)){% endif %}.
+
+Merci de prendre les dispositions nécessaires pour renouveler votre quitus avant la date d'expiration.
+
+Cordialement,
+Port Autonome de Lomé

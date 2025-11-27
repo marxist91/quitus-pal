@@ -31,23 +31,53 @@ class NotificationManager:
             HistoriqueNotifications instance
         """
         try:
-            # Calculer les jours restants
+            # Calculer les jours restants et les mois restants (précis)
+            from dateutil.relativedelta import relativedelta
             today = datetime.now().date()
             days_remaining = (quitus.date_validite - today).days
-            
-            # Préparer les données du contexte
+            rd = relativedelta(quitus.date_validite, today) if days_remaining >= 0 else None
+            months_total = 0
+            # Do not count partial months as a full month here — keep consistent with expiry_monitor
+            if rd:
+                months_total = (rd.years * 12) + rd.months
+            months_effective = months_total if rd else 0
+
+            # Préparer le contexte commun
             context = {
                 'quitus': quitus,
                 'recipient_name': recipient_name or 'Bénéficiaire',
                 'days_remaining': days_remaining,
+                'months_effective': months_effective,
                 'expiry_date': quitus.date_validite.strftime('%d/%m/%Y'),
                 'notification_date': datetime.now().strftime('%d/%m/%Y %H:%M'),
             }
-            
-            # Rendu des templates (sans emoji pour compatibilité Windows console)
-            subject = f"Avertissement: Votre Quitus expirera dans {days_remaining} jours"
-            message_html = render_to_string('quitus_app/emails/expiry_warning.html', context)
-            message_text = render_to_string('quitus_app/emails/expiry_warning.txt', context)
+
+            # Choisir modèle et sujet selon le palier
+            if days_remaining < 0:
+                # expired
+                subject = f"Quitus expiré: {quitus.numero_quitus}"
+                html_tpl = 'quitus_app/emails/expiry_expired.html'
+                txt_tpl = 'quitus_app/emails/expiry_expired.txt'
+            elif months_effective <= 0:
+                # less than 1 month -> days template
+                subject = f"Avertissement: Votre Quitus expirera dans {days_remaining} jour(s)"
+                html_tpl = 'quitus_app/emails/expiry_less1month.html'
+                txt_tpl = 'quitus_app/emails/expiry_less1month.txt'
+            elif months_effective == 1:
+                # exactly 1 month (or partial counted) -> 1 month template
+                subject = f"Rappel: Votre Quitus expirera dans {months_effective} mois"
+                html_tpl = 'quitus_app/emails/expiry_1month.html'
+                txt_tpl = 'quitus_app/emails/expiry_1month.txt'
+            else:
+                # 2..4 or more months -> 4-months / general warning template
+                # Use months_effective in subject
+                subject = f"Avertissement: Votre Quitus expirera dans {months_effective} mois"
+                html_tpl = 'quitus_app/emails/expiry_4months.html'
+                txt_tpl = 'quitus_app/emails/expiry_4months.txt'
+
+            # Rendu des templates
+            message_html = render_to_string(html_tpl, context)
+            message_text = render_to_string(txt_tpl, context)
             
             # Créer l'enregistrement de notification
             notification = HistoriqueNotifications.objects.create(
