@@ -60,3 +60,28 @@ class NotificationPalierSelectionTest(TestCase):
         self.assertIsNotNone(notification)
         self.assertIn('5 mois', notification.subject)
         self.assertIn('Rappel — Quitus à échéance', notification.message_html)
+
+    @patch.object(NotificationManager, '_send_email', return_value=True)
+    def test_logo_cid_set_when_logo_present(self, _send):
+        """Si un fichier de logo existe dans les emplacements connus, le HTML contient `cid:logo`"""
+        import os
+        from django.conf import settings
+
+        # Créer un fichier logo minimal dans BASE_DIR/static/logo/logo.png
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'logo', 'logo.png')
+        os.makedirs(os.path.dirname(logo_path), exist_ok=True)
+        try:
+            with open(logo_path, 'wb') as f:
+                f.write(b'\x89PNG\r\n')
+
+            today = timezone.now().date()
+            q = self._create_quitus('LOGO-001', today + relativedelta(months=2))
+            notification = NotificationManager.send_expiry_warning(q, q.email, recipient_name=q.nom_prenoms)
+            self.assertIsNotNone(notification)
+            # Le template doit contenir la référence inline au logo
+            self.assertIn('cid:logo', notification.message_html)
+        finally:
+            try:
+                os.remove(logo_path)
+            except Exception:
+                pass
