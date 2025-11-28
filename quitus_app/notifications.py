@@ -52,33 +52,33 @@ class NotificationManager:
                 'notification_date': datetime.now().strftime('%d/%m/%Y %H:%M'),
             }
 
-                # Détecter la présence d'un logo local pour attachement inline
+            # Détecter la présence d'un logo local pour attachement inline
+            logo_path = None
+            try:
+                import os
+                candidates = []
+                if getattr(settings, 'STATIC_ROOT', None):
+                    candidates.append(os.path.join(settings.STATIC_ROOT, 'logo', 'logo.png'))
+                if getattr(settings, 'STATICFILES_DIRS', None):
+                    for d in settings.STATICFILES_DIRS:
+                        candidates.append(os.path.join(d, 'logo', 'logo.png'))
+                # Common project locations
+                if getattr(settings, 'BASE_DIR', None):
+                    candidates.append(os.path.join(settings.BASE_DIR, 'static', 'logo', 'logo.png'))
+                    candidates.append(os.path.join(settings.BASE_DIR, 'quitus_app', 'static', 'logo', 'logo.png'))
+                    candidates.append(os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'))
+                    candidates.append(os.path.join(settings.BASE_DIR, 'images', 'logo.png'))
+
+                for p in candidates:
+                    if p and os.path.exists(p):
+                        logo_path = p
+                        break
+            except Exception:
                 logo_path = None
-                try:
-                    import os
-                    candidates = []
-                    if getattr(settings, 'STATIC_ROOT', None):
-                        candidates.append(os.path.join(settings.STATIC_ROOT, 'logo', 'logo.png'))
-                    if getattr(settings, 'STATICFILES_DIRS', None):
-                        for d in settings.STATICFILES_DIRS:
-                            candidates.append(os.path.join(d, 'logo', 'logo.png'))
-                    # Common project locations
-                    if getattr(settings, 'BASE_DIR', None):
-                        candidates.append(os.path.join(settings.BASE_DIR, 'static', 'logo', 'logo.png'))
-                        candidates.append(os.path.join(settings.BASE_DIR, 'quitus_app', 'static', 'logo', 'logo.png'))
-                        candidates.append(os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'))
-                        candidates.append(os.path.join(settings.BASE_DIR, 'images', 'logo.png'))
 
-                    for p in candidates:
-                        if p and os.path.exists(p):
-                            logo_path = p
-                            break
-                except Exception:
-                    logo_path = None
-
-                if logo_path:
-                    # fournir l'ID du contenu pour que le template puisse utiliser cid:logo
-                    context['logo_cid'] = 'logo'
+            if logo_path:
+                # fournir l'ID du contenu pour que le template puisse utiliser cid:logo
+                context['logo_cid'] = 'logo'
 
             # Choisir modèle et sujet selon le palier
             if days_remaining < 0:
@@ -86,22 +86,57 @@ class NotificationManager:
                 subject = f"Quitus expiré: {quitus.numero_quitus}"
                 html_tpl = 'quitus_app/emails/expiry_expired.html'
                 txt_tpl = 'quitus_app/emails/expiry_expired.txt'
-            elif months_effective <= 0:
-                # less than 1 month -> days template
-                subject = f"Avertissement: Votre Quitus expirera dans {days_remaining} jour(s)"
-                html_tpl = 'quitus_app/emails/expiry_less1month.html'
-                txt_tpl = 'quitus_app/emails/expiry_less1month.txt'
-            elif months_effective == 1:
-                # exactly 1 month (or partial counted) -> 1 month template
-                subject = f"Rappel: Votre Quitus expirera dans {months_effective} mois"
-                html_tpl = 'quitus_app/emails/expiry_1month.html'
-                txt_tpl = 'quitus_app/emails/expiry_1month.txt'
             else:
-                # 2..4 or more months -> 4-months / general warning template
-                # Use months_effective in subject
-                subject = f"Avertissement: Votre Quitus expirera dans {months_effective} mois"
-                html_tpl = 'quitus_app/emails/expiry_4months.html'
-                txt_tpl = 'quitus_app/emails/expiry_4months.txt'
+                # Use configurable month-based palier if enabled, otherwise fallback to previous logic
+                use_months = getattr(settings, 'NOTIFICATION_USE_MONTHS', True)
+                paliers = getattr(settings, 'NOTIFICATION_PALIERS_MONTHS', [4, 1, 0])
+
+                chosen = False
+                if use_months and paliers:
+                    # iterate palier list in order; first match wins
+                    for p in paliers:
+                        try:
+                            p = int(p)
+                        except Exception:
+                            continue
+                        if p <= 0:
+                            # less than 1 month -> days template
+                            if months_effective <= 0:
+                                subject = f"Avertissement: Votre Quitus expirera dans {days_remaining} jour(s)"
+                                html_tpl = 'quitus_app/emails/expiry_less1month.html'
+                                txt_tpl = 'quitus_app/emails/expiry_less1month.txt'
+                                chosen = True
+                                break
+                            # otherwise continue checking higher paliers
+                        else:
+                            if months_effective >= p:
+                                # map palier to template
+                                if p == 1:
+                                    subject = f"Rappel: Votre Quitus expirera dans {months_effective} mois"
+                                    html_tpl = 'quitus_app/emails/expiry_1month.html'
+                                    txt_tpl = 'quitus_app/emails/expiry_1month.txt'
+                                else:
+                                    # generic months (e.g. 4+ months)
+                                    subject = f"Avertissement: Votre Quitus expirera dans {months_effective} mois"
+                                    html_tpl = 'quitus_app/emails/expiry_4months.html'
+                                    txt_tpl = 'quitus_app/emails/expiry_4months.txt'
+                                chosen = True
+                                break
+
+                if not chosen:
+                    # fallback to original behavior
+                    if months_effective <= 0:
+                        subject = f"Avertissement: Votre Quitus expirera dans {days_remaining} jour(s)"
+                        html_tpl = 'quitus_app/emails/expiry_less1month.html'
+                        txt_tpl = 'quitus_app/emails/expiry_less1month.txt'
+                    elif months_effective == 1:
+                        subject = f"Rappel: Votre Quitus expirera dans {months_effective} mois"
+                        html_tpl = 'quitus_app/emails/expiry_1month.html'
+                        txt_tpl = 'quitus_app/emails/expiry_1month.txt'
+                    else:
+                        subject = f"Avertissement: Votre Quitus expirera dans {months_effective} mois"
+                        html_tpl = 'quitus_app/emails/expiry_4months.html'
+                        txt_tpl = 'quitus_app/emails/expiry_4months.txt'
 
             # Rendu des templates
             message_html = render_to_string(html_tpl, context)

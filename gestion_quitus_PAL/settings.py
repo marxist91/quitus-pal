@@ -185,9 +185,15 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@togoport.tg')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', 'noreply@togoport.tg')
 
 # Configuration pour les notifications
-NOTIFICATION_DAYS_BEFORE_EXPIRY = 7  # Envoyer email 7 jours avant expiration
-NOTIFICATION_MAX_RETRIES = 3  # Nombre de tentatives si erreur
-NOTIFICATION_RETRY_DELAY = 3600  # Délai avant nouvelle tentative (en secondes)
+# Use months-based palier notifications when enabled (configurable via .env)
+NOTIFICATION_USE_MONTHS = os.getenv('NOTIFICATION_USE_MONTHS', 'True') == 'True'
+# Comma-separated palier months (order matters). Example: 4,1,0
+NOTIFICATION_PALIERS_MONTHS = [int(x) for x in os.getenv('NOTIFICATION_PALIERS_MONTHS', '4,1,0').split(',') if x.strip()]
+# Fallback day-based scheduling used by background checker (days before expiry)
+NOTIFICATION_DAYS_BEFORE_EXPIRY = int(os.getenv('NOTIFICATION_DAYS_BEFORE_EXPIRY', '7'))
+# Retry configuration
+NOTIFICATION_MAX_RETRIES = int(os.getenv('NOTIFICATION_MAX_RETRIES', '3'))
+NOTIFICATION_RETRY_DELAY = int(os.getenv('NOTIFICATION_RETRY_DELAY', '3600'))
 
 # Utiliser le backend en mémoire lors de l'exécution des tests pour capturer les emails dans django.core.mail.outbox
 if 'test' in sys.argv:
