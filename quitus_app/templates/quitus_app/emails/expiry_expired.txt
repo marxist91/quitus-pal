@@ -1,5 +1,13 @@
 Bonjour {{ recipient_name }},
 
+Nous constatons que le quitus {{ quitus.numero_quitus }} a expiré le {{ expiry_date }}.
+
+Pour toute régularisation, veuillez contacter le service compétent par email à <port-support@pal.local> ou vous présenter au Port. Les démarches de régularisation se font localement et ne sont pas accessibles via un lien public.
+
+Cordialement,
+Gestion Quitus — Plateforme PAL
+Email généré automatiquement le {{ notification_date }}Bonjour {{ recipient_name }},
+
 Le quitus {{ quitus.numero_quitus }} a expiré le {{ expiry_date }}.
 
 Contactez le service compétent pour toute régularisation.

@@ -1,9 +1,42 @@
-<html>
-<head><meta charset="utf-8"></head>
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff7f7;margin:0}
+    .container{max-width:640px;margin:18px auto;background:#fff;border-radius:8px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+    .header{background:#c82333;color:#fff;padding:14px 18px;display:flex;align-items:center}
+    .logo{height:44px;margin-right:10px}
+    .content{padding:18px}
+    .cta{display:inline-block;background:#c82333;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none}
+    .details{background:#fff3f3;border:1px solid #f5c6cb;padding:12px;border-radius:6px;margin:12px 0}
+    .footer{padding:12px 18px;background:#fff6f6;border-top:1px solid #f1d0d6;color:#444}
+  </style>
+</head>
 <body>
-  <p>Bonjour {{ recipient_name }},</p>
-  <p>Attention : votre quitus <strong>{{ quitus.numero_quitus }}</strong> expirera le <strong>{{ expiry_date }}</strong>, soit dans <strong>{{ days_remaining }} jour(s)</strong>.</p>
-  <p>Veuillez renouveler sans délai pour éviter tout désagrément.</p>
-  <p>Cordialement,<br/>Port Autonome de Lomé</p>
+  <div class="container">
+    <div class="header">
+      <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      <div><strong>Alerte — Quitus presque expiré</strong></div>
+    </div>
+
+    <div class="content">
+      <p>Bonjour <strong>{{ recipient_name }}</strong>,</p>
+      <p class="muted">Attention : votre quitus <strong>{{ quitus.numero_quitus }}</strong> expirera le <strong>{{ expiry_date }}</strong>, soit dans <strong>{{ days_remaining }} jour(s)</strong>.</p>
+
+      <div class="details">
+        <div><strong>Numéro:</strong> {{ quitus.numero_quitus }}</div>
+        <div><strong>Fin validité:</strong> {{ quitus.date_validite|date:'d/m/Y' }}</div>
+      </div>
+
+      <p>Merci de procéder au renouvellement immédiatement afin d'éviter tout désagrément administratif ou d'accès.</p>
+
+      <p style="text-align:center;margin:18px 0"><a class="cta" href="mailto:port-support@pal.local?subject=Renouvellement%20Urgent%20Quitus%20{{ quitus.numero_quitus }}">Contacter immédiatement le service</a></p>
+    </div>
+
+    <div class="footer">Gestion Quitus — Plateforme PAL — Email automatique le {{ notification_date }}</div>
+  </div>
 </body>
 </html>

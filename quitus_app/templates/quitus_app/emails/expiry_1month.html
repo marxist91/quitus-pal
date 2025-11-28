@@ -1,9 +1,54 @@
-<html>
-<head><meta charset="utf-8"></head>
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#333;background:#f6f8fb;margin:0}
+    .container{max-width:640px;margin:20px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+    .header{background:#0b6fa4;color:#fff;padding:18px 24px;display:flex;align-items:center;gap:12px}
+    .logo{height:48px}
+    .title{font-size:18px;font-weight:700}
+    .content{padding:24px}
+    .cta{display:inline-block;background:#0b6fa4;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700}
+    .muted{color:#667}
+    .details{background:#f4f6f8;border:1px solid #e6eaee;padding:12px;border-radius:6px;margin:16px 0}
+    .footer{padding:18px 24px;background:#fbfdff;border-top:1px solid #eef3f7;font-size:13px;color:#556}
+  </style>
+</head>
 <body>
-  <p>Bonjour {{ recipient_name }},</p>
-  <p>Votre quitus <strong>{{ quitus.numero_quitus }}</strong> arrive à expiration le <strong>{{ expiry_date }}</strong> (dans environ <strong>{{ months_effective }} mois</strong>{% if days_remaining is not none %} (<strong>{{ days_remaining }} jour(s)</strong>){% endif %}).</p>
-  <p>Merci de procéder au renouvellement dès que possible.</p>
-  <p>Cordialement,<br/>Port Autonome de Lomé</p>
+  <div class="container">
+    <div class="header">
+      <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      <div class="title">Notification — Quitus proche de l'expiration</div>
+    </div>
+
+    <div class="content">
+      <p>Bonjour <strong>{{ recipient_name }}</strong>,</p>
+
+      <p>Nous vous informons que votre quitus <strong>{{ quitus.numero_quitus }}</strong> arrive à expiration le <strong>{{ expiry_date }}</strong> (dans environ <strong>{{ months_effective }} mois</strong>{% if days_remaining is not none %} — <strong>{{ days_remaining }} jour(s)</strong>{% endif %}).</p>
+
+      <div class="details">
+        <div><strong>Numéro:</strong> {{ quitus.numero_quitus }}</div>
+        <div><strong>Titulaire:</strong> {{ quitus.nom_prenoms }}</div>
+        <div><strong>Date validité:</strong> {{ quitus.date_validite|date:'d/m/Y' }}</div>
+      </div>
+
+      <p class="muted">La plateforme étant hébergée en interne, il n'existe pas de lien de renouvellement en ligne public. Pour procéder au renouvellement, merci de contacter le service compétent ou de vous présenter au Port dans les plus brefs délais.</p>
+
+      <p style="text-align:center;margin:22px 0">
+        <a class="cta" href="mailto:port-support@pal.local?subject=Renouvellement%20Quitus%20{{ quitus.numero_quitus }}">Contacter le service (email)</a>
+      </p>
+
+      <p>Si vous avez déjà initié la démarche, merci d'ignorer ce message.</p>
+    </div>
+
+    <div class="footer">
+      <div><strong>Gestion Quitus — Plateforme PAL</strong></div>
+      <div>Email généré automatiquement le {{ notification_date }}</div>
+      <div>Ceci est un message automatisé — ne pas répondre directement à cet envoi.</div>
+    </div>
+  </div>
 </body>
 </html>

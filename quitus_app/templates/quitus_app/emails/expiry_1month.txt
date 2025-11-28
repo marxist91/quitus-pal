@@ -1,5 +1,15 @@
 Bonjour {{ recipient_name }},
 
+Nous vous informons que votre quitus {{ quitus.numero_quitus }} arrive à expiration le {{ expiry_date }} (environ {{ months_effective }} mois{% if days_remaining is not none %}, soit {{ days_remaining }} jour(s){% endif %}).
+
+La plateforme est hébergée en interne ; il n'existe pas de lien de renouvellement en ligne public. Pour procéder au renouvellement, merci de contacter le service compétent par email à <port-support@pal.local> ou de vous présenter au Port dans les plus brefs délais.
+
+Si vous avez déjà engagé la procédure de renouvellement, veuillez ignorer ce message.
+
+Cordialement,
+Gestion Quitus — Plateforme PAL
+Email généré automatiquement le {{ notification_date }}Bonjour {{ recipient_name }},
+
 Votre quitus {{ quitus.numero_quitus }} arrive à expiration le {{ expiry_date }} (dans environ {{ months_effective }} mois{% if days_remaining is not none %} ({{ days_remaining }} jour(s)){% endif %}).
 
 Merci de procéder au renouvellement dès que possible.

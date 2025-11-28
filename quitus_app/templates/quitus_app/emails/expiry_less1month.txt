@@ -2,6 +2,14 @@ Bonjour {{ recipient_name }},
 
 Attention : votre quitus {{ quitus.numero_quitus }} expirera le {{ expiry_date }}, soit dans {{ days_remaining }} jour(s).
 
+La plateforme étant interne, il n'existe pas de renouvellement en ligne public. Veuillez contacter immédiatement le service compétent par email à <port-support@pal.local> ou vous présenter au Port pour régulariser la situation.
+
+Cordialement,
+Gestion Quitus — Plateforme PAL
+Email généré automatiquement le {{ notification_date }}Bonjour {{ recipient_name }},
+
+Attention : votre quitus {{ quitus.numero_quitus }} expirera le {{ expiry_date }}, soit dans {{ days_remaining }} jour(s).
+
 Veuillez renouveler sans délai pour éviter tout désagrément.
 
 Cordialement,
