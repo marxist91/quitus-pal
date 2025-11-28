@@ -19,8 +19,12 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      <div class="header">
+      {% if logo_cid %}
+        <img class="logo" src="cid:{{ logo_cid }}" alt="Logo" />
+      {% else %}
+        <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      {% endif %}
       <div class="title">Notification — Quitus proche de l'expiration</div>
     </div>
 

@@ -52,6 +52,34 @@ class NotificationManager:
                 'notification_date': datetime.now().strftime('%d/%m/%Y %H:%M'),
             }
 
+                # Détecter la présence d'un logo local pour attachement inline
+                logo_path = None
+                try:
+                    import os
+                    candidates = []
+                    if getattr(settings, 'STATIC_ROOT', None):
+                        candidates.append(os.path.join(settings.STATIC_ROOT, 'logo', 'logo.png'))
+                    if getattr(settings, 'STATICFILES_DIRS', None):
+                        for d in settings.STATICFILES_DIRS:
+                            candidates.append(os.path.join(d, 'logo', 'logo.png'))
+                    # Common project locations
+                    if getattr(settings, 'BASE_DIR', None):
+                        candidates.append(os.path.join(settings.BASE_DIR, 'static', 'logo', 'logo.png'))
+                        candidates.append(os.path.join(settings.BASE_DIR, 'quitus_app', 'static', 'logo', 'logo.png'))
+                        candidates.append(os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png'))
+                        candidates.append(os.path.join(settings.BASE_DIR, 'images', 'logo.png'))
+
+                    for p in candidates:
+                        if p and os.path.exists(p):
+                            logo_path = p
+                            break
+                except Exception:
+                    logo_path = None
+
+                if logo_path:
+                    # fournir l'ID du contenu pour que le template puisse utiliser cid:logo
+                    context['logo_cid'] = 'logo'
+
             # Choisir modèle et sujet selon le palier
             if days_remaining < 0:
                 # expired
@@ -97,7 +125,8 @@ class NotificationManager:
                 subject=subject,
                 message_text=message_text,
                 message_html=message_html,
-                notification_id=notification.id
+                notification_id=notification.id,
+                logo_path=logo_path
             )
             
             if success:
@@ -117,7 +146,7 @@ class NotificationManager:
             return None
     
     @staticmethod
-    def _send_email(recipient_email, subject, message_text, message_html, notification_id=None):
+    def _send_email(recipient_email, subject, message_text, message_html, notification_id=None, logo_path=None):
         """
         Envoyer un email avec gestion d'erreurs
         
@@ -142,7 +171,20 @@ class NotificationManager:
             
             # Ajouter version HTML
             msg.attach_alternative(message_html, "text/html")
-            
+
+            # Attacher l'image inline si fournie
+            if logo_path:
+                try:
+                    from email.mime.image import MIMEImage
+                    import os
+                    with open(logo_path, 'rb') as f:
+                        img = MIMEImage(f.read())
+                        img.add_header('Content-ID', '<logo>')
+                        img.add_header('Content-Disposition', 'inline', filename=os.path.basename(logo_path))
+                        msg.attach(img)
+                except Exception as e:
+                    logger.warning(f"Impossible d'attacher le logo inline: {e}")
+
             # Envoyer
             result = msg.send(fail_silently=False)
             if result:  # result == 1 en succès

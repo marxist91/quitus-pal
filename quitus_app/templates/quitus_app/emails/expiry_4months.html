@@ -18,7 +18,11 @@
 <body>
   <div class="container">
     <div class="header">
-      <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      {% if logo_cid %}
+        <img class="logo" src="cid:{{ logo_cid }}" alt="Logo" />
+      {% else %}
+        <img class="logo" src="{% static 'logo/logo.png' %}" alt="Logo" onerror="this.style.display='none'" />
+      {% endif %}
       <div><strong>Rappel — Quitus à échéance</strong></div>
     </div>
 
